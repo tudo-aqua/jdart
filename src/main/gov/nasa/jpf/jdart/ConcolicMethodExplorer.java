@@ -23,6 +23,7 @@ import gov.nasa.jpf.constraints.api.ValuationEntry;
 import gov.nasa.jpf.constraints.api.Variable;
 import gov.nasa.jpf.constraints.java.ObjectConstraints;
 import gov.nasa.jpf.constraints.parser.ParserUtil;
+import gov.nasa.jpf.constraints.types.BuiltinTypes;
 import gov.nasa.jpf.constraints.types.Type;
 import gov.nasa.jpf.jdart.ConcolicUtil.Pair;
 import gov.nasa.jpf.jdart.config.AnalysisConfig;
@@ -344,15 +345,19 @@ public class ConcolicMethodExplorer {
   
   public void prepareFirstExecution(StackFrame sf) {
     initValuation = new Valuation();
-    for(SymbolicVariable<?> sv : symContext.getSymbolicVars())
+    for(SymbolicVariable<?> sv : symContext.getSymbolicVars()) {
       sv.readInitial(initValuation, sf);
+    }
     currValuation = initValuation;
+    count = 0;
   }
   
   public void prepareReexecution(StackFrame sf) {
     logger.finest("Reexecuting with valuation " + currValuation);
-    for(SymbolicVariable<?> sv : symContext.getSymbolicVars())
+    for(SymbolicVariable<?> sv : symContext.getSymbolicVars()) {
       sv.apply(currValuation, sf);
+    }
+    count = 0;
   }
  
   
@@ -442,6 +447,25 @@ public class ConcolicMethodExplorer {
     }
   }
   
+  private int count = 0;
+  
+  Pair<Integer> getOrCreateSymbolicInt() {
+    Variable var = new Variable(BuiltinTypes.SINT32, "_i" + count++);
+    Integer val = (Integer) currValuation.getValue(var);
+    if (val == null) {
+      val = 0;
+    }
+    return new Pair<>(val, var);
+  }
+
+  Pair<Boolean> getOrCreateSymbolicBoolean() {
+    Variable var = new Variable(BuiltinTypes.BOOL, "_b" + count++);
+    Boolean val = (Boolean) currValuation.getValue(var);
+    if (val == null) {
+      val = false;
+    }
+    return new Pair<>(val, var);
+  }
   
   // LEGACY API
   

@@ -1,0 +1,6 @@
+@include=../../config/jdart.jpf
+
+target=features.dynamic.Input
+
+concolic.method.foo=features.dynamic.Input.foo()
+
