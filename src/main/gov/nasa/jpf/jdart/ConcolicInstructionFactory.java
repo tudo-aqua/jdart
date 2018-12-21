@@ -17,6 +17,7 @@ package gov.nasa.jpf.jdart;
 
 import gov.nasa.jpf.JPF;
 import gov.nasa.jpf.jdart.bytecode.ATHROW;
+import gov.nasa.jpf.jdart.bytecode.BALOAD;
 import gov.nasa.jpf.jdart.bytecode.D2F;
 import gov.nasa.jpf.jdart.bytecode.D2I;
 import gov.nasa.jpf.jdart.bytecode.D2L;
@@ -89,6 +90,7 @@ import gov.nasa.jpf.jdart.bytecode.LSUB;
 import gov.nasa.jpf.jdart.bytecode.LUSHR;
 import gov.nasa.jpf.jdart.bytecode.LXOR;
 import gov.nasa.jpf.jdart.bytecode.NATIVERETURN;
+import gov.nasa.jpf.jdart.bytecode.NEWARRAY;
 import gov.nasa.jpf.jdart.bytecode.TABLESWITCH;
 import gov.nasa.jpf.util.JPFLogger;
 import gov.nasa.jpf.vm.Instruction;
@@ -483,5 +485,18 @@ public class ConcolicInstructionFactory extends gov.nasa.jpf.jvm.bytecode.Instru
 	public gov.nasa.jpf.jvm.bytecode.L2I l2i() {
 		return  new L2I();
 	}
+
+  @Override
+  public Instruction newarray(int typeCode) {
+    return new NEWARRAY(typeCode);
+  }
+
+  
+  @Override
+  public Instruction baload() {
+    return new BALOAD();
+  }
+  
+  
    
 }

@@ -17,12 +17,15 @@ package gov.nasa.jpf.jdart;
 
 import gov.nasa.jpf.Config;
 import gov.nasa.jpf.JPF;
+import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.jdart.objects.SymbolicObjectsContext;
+import gov.nasa.jpf.jdart.objects.SymbolicString;
 import gov.nasa.jpf.listener.Perturbator;
 import gov.nasa.jpf.search.Search;
 import gov.nasa.jpf.util.JPFLogger;
 import gov.nasa.jpf.util.SimpleProfiler;
 import gov.nasa.jpf.vm.ClassInfo;
+import gov.nasa.jpf.vm.DynamicElementInfo;
 import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.ExceptionInfo;
 import gov.nasa.jpf.vm.MethodInfo;
@@ -30,6 +33,7 @@ import gov.nasa.jpf.vm.NativeStackFrame;
 import gov.nasa.jpf.vm.StackFrame;
 import gov.nasa.jpf.vm.ThreadInfo;
 import gov.nasa.jpf.vm.VM;
+import java.util.Arrays;
 
 /**
  * listener steering concolic execution.
@@ -70,26 +74,7 @@ public class ConcolicListener extends Perturbator {
     ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
     if(ca == null)
       return;
-    
-    //logger.finest("Leaving Method " + mi.getBaseName());
-    //logger.finest("Return Value is of type " + mi.getReturnType());
-    //logger.finest("Top Frame Method " + ti.getTopFrame().getMethodName());
-    //logger.finest("Top Frame Return Value Concrete " + ti.getTopFrame().getResult());
-    //logger.finest("Top Frame Return Value Symbolic " + ti.getTopFrame().getResultAttr());
-    
-    if ("java.util.Random.nextInt".equals(mi.getBaseName())) {
-      ConcolicUtil.Pair result = ca.getOrCreateSymbolicInt();
-      NativeStackFrame sf = (NativeStackFrame) ti.getTopFrame();
-      sf.setReturnAttr(result.symb);
-      sf.setReturnValue(result.conc);
-    }
-    else if ("java.util.Random.nextBoolean".equals(mi.getBaseName())) {
-      ConcolicUtil.Pair result = ca.getOrCreateSymbolicBoolean();
-      NativeStackFrame sf = (NativeStackFrame) ti.getTopFrame();
-      sf.setReturnAttr(result.symb);
-      sf.setReturnValue(result.conc);
-    }
-    
+
     if(ca.isRootFrame(ti.getTopFrame())) {
       ExceptionInfo pending = ti.getPendingException();
       if(pending != null) {

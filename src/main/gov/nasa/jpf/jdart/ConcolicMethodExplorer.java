@@ -59,7 +59,7 @@ import org.antlr.runtime.RecognitionException;
  *
  */
 public class ConcolicMethodExplorer {
-  
+
   private static final class RestoreExploreState {
     public final boolean explore;
     
@@ -449,8 +449,8 @@ public class ConcolicMethodExplorer {
   
   private int count = 0;
   
-  Pair<Integer> getOrCreateSymbolicInt() {
-    Variable var = new Variable(BuiltinTypes.SINT32, "_i" + count++);
+  public Pair<Integer> getOrCreateSymbolicInt() {
+    Variable var = new Variable(BuiltinTypes.SINT32, "_int" + count++);
     Integer val = (Integer) currValuation.getValue(var);
     if (val == null) {
       val = 0;
@@ -458,14 +458,22 @@ public class ConcolicMethodExplorer {
     return new Pair<>(val, var);
   }
 
-  Pair<Boolean> getOrCreateSymbolicBoolean() {
-    Variable var = new Variable(BuiltinTypes.BOOL, "_b" + count++);
+  public Pair<Boolean> getOrCreateSymbolicBoolean() {
+    Variable var = new Variable(BuiltinTypes.BOOL, "_bool" + count++);
     Boolean val = (Boolean) currValuation.getValue(var);
     if (val == null) {
       val = false;
     }
     return new Pair<>(val, var);
   }
+  
+  public Pair<Byte> getOrCreateSymbolicByte() {
+    Variable var = new Variable(BuiltinTypes.SINT8, "_byte" + count++);
+    Byte val = (Byte) currValuation.getValue(var);
+    if (val == null) {
+      val = 0;
+    }
+    return new Pair<>(val, var);  }  
   
   // LEGACY API
   

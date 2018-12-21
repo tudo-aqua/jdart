@@ -1,0 +1,6 @@
+@include=../../config/jdart.jpf
+
+target=features.strings.Input
+
+concolic.method=main
+

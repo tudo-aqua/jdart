@@ -117,7 +117,7 @@ public class InternalConstraintsTree {
     public void verifyDecision(Instruction branchInsn, Expression<Boolean>[] constraints) {
       if(branchInsn != this.branchInsn)
         throw new IllegalStateException("Same decision, but different branching instruction!");
-      if(constraints != null && constraints.length == this.constraints.length)
+      if(constraints != null && constraints.length != this.constraints.length)
         throw new IllegalStateException("Same decision, but different number of constraints!");
     }
 
