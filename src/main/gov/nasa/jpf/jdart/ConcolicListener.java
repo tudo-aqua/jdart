@@ -2,7 +2,9 @@
  * Copyright (C) 2015, United States Government, as represented by the 
  * Administrator of the National Aeronautics and Space Administration.
  * All rights reserved.
- * 
+ *
+ * Modifications Copyright 2019 TU Dortmund Falk Howar (@fhowar)
+ *
  * The PSYCO: A Predicate-based Symbolic Compositional Reasoning environment 
  * platform is licensed under the Apache License, Version 2.0 (the "License"); you 
  * may not use this file except in compliance with the License. You may obtain a 
