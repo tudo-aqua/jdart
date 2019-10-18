@@ -2,7 +2,9 @@
  * Copyright (C) 2015, United States Government, as represented by the 
  * Administrator of the National Aeronautics and Space Administration.
  * All rights reserved.
- * 
+ *
+ * Modifications Copyright 2019 TU Dortmund, Falk Howar (@fhowar) und Malte Mues (@mmuesly)
+ *
  * The PSYCO: A Predicate-based Symbolic Compositional Reasoning environment 
  * platform is licensed under the Apache License, Version 2.0 (the "License"); you 
  * may not use this file except in compliance with the License. You may obtain a 
@@ -37,6 +39,8 @@ import gov.nasa.jpf.jdart.constraints.InternalConstraintsTree.BranchEffect;
 import gov.nasa.jpf.jdart.constraints.PathResult;
 import gov.nasa.jpf.jdart.constraints.PostCondition;
 import gov.nasa.jpf.jdart.objects.SymbolicObjectsContext;
+import gov.nasa.jpf.jdart.termination.TerminateOnFirstError;
+import gov.nasa.jpf.jdart.termination.TerminationStrategy;
 import gov.nasa.jpf.util.JPFLogger;
 import gov.nasa.jpf.vm.ClassInfo;
 import gov.nasa.jpf.vm.ElementInfo;
@@ -118,7 +122,9 @@ public class ConcolicMethodExplorer {
    */
   
   private final SolverContext solverCtx;
-  
+
+  /** Storing eventualy configured TerminationStrategy */
+  private final TerminationStrategy ts;
 
   public ConcolicMethodExplorer(ConcolicConfig config, String id, MethodInfo mi) {
     // store method info and config
@@ -132,6 +138,7 @@ public class ConcolicMethodExplorer {
     // create a constraints tree
     this.solverCtx = config.getSolver().createContext();    
     this.constraintsTree = new InternalConstraintsTree(solverCtx, anaConf, vals);
+    this.ts = config.getTerminationStrategy();
   }
   
   public void setExplore(boolean explore) {
@@ -193,6 +200,12 @@ public class ConcolicMethodExplorer {
     String st = sw.toString();
     PathResult res = PathResult.error(currValuation, exElem.getClassInfo().getName(), st);
     constraintsTree.finish(res);
+    System.out.println("TerminationStrategy: " + ts);
+    System.out.println("found error");
+    if(ts != null && ts instanceof TerminateOnFirstError){
+      TerminateOnFirstError tofe = (TerminateOnFirstError) ts;
+      tofe.setErrorPathObserved();
+    }
   }
 
   public boolean hasMoreChoices() {
