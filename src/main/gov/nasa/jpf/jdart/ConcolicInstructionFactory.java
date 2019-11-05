@@ -50,7 +50,9 @@ import gov.nasa.jpf.jdart.bytecode.I2F;
 import gov.nasa.jpf.jdart.bytecode.I2L;
 import gov.nasa.jpf.jdart.bytecode.I2S;
 import gov.nasa.jpf.jdart.bytecode.IADD;
+import gov.nasa.jpf.jdart.bytecode.IALOAD;
 import gov.nasa.jpf.jdart.bytecode.IAND;
+import gov.nasa.jpf.jdart.bytecode.IASTORE;
 import gov.nasa.jpf.jdart.bytecode.IDIV;
 import gov.nasa.jpf.jdart.bytecode.IFEQ;
 import gov.nasa.jpf.jdart.bytecode.IFGE;
@@ -138,8 +140,18 @@ public class ConcolicInstructionFactory extends gov.nasa.jpf.jvm.bytecode.Instru
 	}
 
 	@Override
+	public gov.nasa.jpf.jvm.bytecode.IALOAD iaload() {
+		return new IALOAD();
+	}
+
+	@Override
 	public gov.nasa.jpf.jvm.bytecode.IAND iand() {
 		return new IAND();
+	}
+
+	@Override
+	public gov.nasa.jpf.jvm.bytecode.IASTORE iastore() {
+		return new IASTORE();
 	}
 
 	@Override

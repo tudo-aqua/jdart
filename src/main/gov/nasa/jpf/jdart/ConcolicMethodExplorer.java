@@ -200,9 +200,7 @@ public class ConcolicMethodExplorer {
     String st = sw.toString();
     PathResult res = PathResult.error(currValuation, exElem.getClassInfo().getName(), st);
     constraintsTree.finish(res);
-    System.out.println("TerminationStrategy: " + ts);
-    System.out.println("found error");
-    if(ts != null && ts instanceof TerminateOnFirstError){
+    if(ts != null && ts instanceof TerminateOnFirstError && !exElem.getClassInfo().getName().equals("errors.Assume")){
       TerminateOnFirstError tofe = (TerminateOnFirstError) ts;
       tofe.setErrorPathObserved();
     }

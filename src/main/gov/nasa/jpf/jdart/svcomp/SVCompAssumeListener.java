@@ -14,6 +14,7 @@
  */
 package gov.nasa.jpf.jdart.svcomp;
 
+import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
 import gov.nasa.jpf.jvm.ClassFile;
 import gov.nasa.jpf.vm.ChoiceGenerator;
 import gov.nasa.jpf.vm.ClassInfo;
@@ -180,8 +181,9 @@ public class SVCompAssumeListener implements VMListener {
   public void methodEntered(VM vm, ThreadInfo ti, MethodInfo mi) {
     if ("java.lang.Runtime".equals(mi.getClassName())
             && "halt".equals(mi.getName())) {
-      
-      ti.createAndThrowException("errors.Assume");
+      ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+      //Assumption violation is okay
+      ca.completePathOk(ti);
     }
   }
 
