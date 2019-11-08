@@ -18,16 +18,19 @@ import gov.nasa.jpf.annotation.MJI;
 import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.Variable;
 import gov.nasa.jpf.constraints.expressions.Constant;
+import gov.nasa.jpf.constraints.expressions.LogicalOperator;
 import gov.nasa.jpf.constraints.expressions.Negation;
 import gov.nasa.jpf.constraints.expressions.NumericBooleanExpression;
 import gov.nasa.jpf.constraints.expressions.NumericComparator;
 import gov.nasa.jpf.constraints.expressions.NumericCompound;
 import gov.nasa.jpf.constraints.expressions.NumericOperator;
+import gov.nasa.jpf.constraints.expressions.PropositionalCompound;
 import gov.nasa.jpf.constraints.types.BuiltinTypes;
 import gov.nasa.jpf.constraints.util.ExpressionUtil;
 import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
 import gov.nasa.jpf.jdart.annotations.SymbolicPeer;
 import gov.nasa.jpf.jdart.objects.SymbolicString;
+import gov.nasa.jpf.vm.DynamicElementInfo;
 import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.MJIEnv;
 import gov.nasa.jpf.vm.MethodInfo;
@@ -129,11 +132,28 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 
 		if (symbThis != null && symbOther != null) {
 			System.out.println("----- both symbolic");
-			//TODO: Build a real model to deal with symbolic strings.
+			String selfConcrete = env.getStringObject(objRef);
+			String otherConcrete = env.getStringObject(argRef);
+			boolean lengthSat = (selfConcrete.length() == otherConcrete.length());
+			Expression equalLength = new NumericBooleanExpression(symbThis.getSymbolicLength(),
+																  NumericComparator.EQ,
+																  symbOther.getSymbolicLength());
+			analysis.decision(ti, null, lengthSat ? 0 : 1, equalLength, new Negation(equalLength));
 
-			// can't deal with two symbolic strings currently
-			//env.throwException("errors.NoModel");
-			return true;
+			if (lengthSat) {
+				boolean contentSat = selfConcrete.equals(otherConcrete);
+				Expression check = ExpressionUtil.TRUE;
+				for (int i = 0; i < selfConcrete.length(); i++) {
+					check = ExpressionUtil.and(check,
+											   new NumericBooleanExpression(symbThis.getSymbolicChars()[i],
+																			NumericComparator.EQ,
+																			symbOther.getSymbolicChars()[i]));
+				}
+				analysis.decision(ti, null, contentSat ? 0 : 1, check, new Negation(check));
+				return contentSat;
+			} else {
+				return false;
+			}
 		}
 
 		System.out.println("----- one symbolic!");
@@ -307,6 +327,150 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 										concreteResult,
 										env.getThreadInfo());
 
+	}
+
+	@MJI
+	@SymbolicPeer
+	public boolean contains__Ljava_lang_CharSequence_2__Z(MJIEnv env, int objRef, int charSequenceRef) {
+		ThreadInfo ti = env.getThreadInfo();
+
+		String self = env.getStringObject(objRef);
+		String other = "";
+		if (((DynamicElementInfo) env.getHeap().get(charSequenceRef)).getClassInfo()
+																	 .getName()
+																	 .startsWith("java.lang.String")) {
+			other = env.getStringObject(charSequenceRef);
+		} else {
+			ConcolicMethodExplorer.getCurrentAnalysis(ti).completePathDontKnow(ti);
+			return false;
+		}
+		ElementInfo eiSelf = env.getElementInfo(objRef);
+		ElementInfo eiOther = env.getElementInfo(charSequenceRef);
+		SymbolicString symbolicSelf = eiSelf.getObjectAttr(SymbolicString.class);
+		SymbolicString symbolicOther = eiOther.getObjectAttr(SymbolicString.class);
+		boolean concreteResult = self.contains(other);
+		if (symbolicOther == null && symbolicSelf == null) {
+			return concreteResult;
+		} else if (symbolicOther != null && symbolicSelf == null) {
+			return evaluateContainsConcreteSelfSymbolicOther(self, other, symbolicOther, ti);
+		} else if (symbolicOther == null && symbolicSelf != null) {
+			return evaluateContainsSymbolicSelfConcreteOther(self, symbolicSelf, other, ti);
+		} else {
+			return evaluateContainsSymbolicSelfSymbolicOther(self, symbolicSelf, other, symbolicOther, ti);
+		}
+	}
+
+	private static boolean computeContainsCheckOneSymbolicOneConcrete(String self,
+																	  String other,
+																	  Expression[] symbolicChars,
+																	  boolean selfSymbolic,
+																	  String concreteChars,
+																	  boolean lengthCheck,
+																	  Expression lengthCheckE,
+																	  ThreadInfo ti) {
+		ConcolicMethodExplorer ce = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		ce.decision(ti, null, lengthCheck ? 0 : 1, lengthCheckE, new Negation(lengthCheckE));
+		if (lengthCheck) {
+			Expression all = ExpressionUtil.FALSE;
+			for (int i = 0; i < self.length() - other.length(); i++) {
+				Expression check = ExpressionUtil.TRUE;
+				for (int j = 0; j < other.length(); j++) {
+					check = ExpressionUtil.and(check,
+											   new NumericBooleanExpression(symbolicChars[selfSymbolic ? i + j : j],
+																			NumericComparator.EQ,
+																			new Constant<Byte>(BuiltinTypes.SINT8,
+																							   (byte) concreteChars.charAt(
+																									   selfSymbolic ?
+																											   i + j :
+																											   j))));
+				}
+				all = ExpressionUtil.or(all, check);
+			}
+			boolean concreteContains = self.contains(other);
+			ce.decision(ti, null, concreteContains ? 0 : 1, all, new Negation(all));
+			return concreteContains;
+		} else {
+			return false;
+		}
+	}
+
+	private static boolean evaluateContainsConcreteSelfSymbolicOther(String self,
+																	 String other,
+																	 SymbolicString symbolicOther,
+																	 ThreadInfo ti) {
+		boolean lengthCheck = self.length() >= other.length();
+		Expression lengthCheckE = new NumericBooleanExpression(symbolicOther.getSymbolicLength(),
+															   NumericComparator.LE,
+															   new Constant<Integer>(BuiltinTypes.SINT32,
+																					 self.length()));
+		return computeContainsCheckOneSymbolicOneConcrete(self,
+														  other,
+														  symbolicOther.getSymbolicChars(),
+														  false,
+														  self,
+														  lengthCheck,
+														  lengthCheckE,
+														  ti);
+	}
+
+	private static boolean evaluateContainsSymbolicSelfConcreteOther(String self,
+																	 SymbolicString symbolicSelf,
+																	 String other,
+																	 ThreadInfo ti) {
+		boolean lengthCheck = self.length() >= other.length();
+		Expression lengthCheckE = new NumericBooleanExpression(symbolicSelf.getSymbolicLength(),
+															   NumericComparator.GE,
+															   new Constant<Integer>(BuiltinTypes.SINT32,
+																					 other.length()));
+		return computeContainsCheckOneSymbolicOneConcrete(self,
+														  other,
+														  symbolicSelf.getSymbolicChars(),
+														  true,
+														  other,
+														  lengthCheck,
+														  lengthCheckE,
+														  ti);
+	}
+
+	private static boolean evaluateContainsSymbolicSelfSymbolicOther(String self,
+																	 SymbolicString symbolicSelf,
+																	 String other,
+																	 SymbolicString symbolicOther,
+																	 ThreadInfo ti) {
+		ConcolicMethodExplorer ce = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		boolean lengthCheck = self.length() >= other.length();
+		Expression lengthCheckE = new NumericBooleanExpression(symbolicSelf.getSymbolicLength(),
+															   NumericComparator.GE,
+															   symbolicOther.getSymbolicLength());
+		ce.decision(ti, null, lengthCheck ? 0 : 1, lengthCheckE, new Negation(lengthCheckE));
+		boolean lengthZero = self.length() == 0 && other.length() == 0;
+		Expression lengthZeroE =
+				new PropositionalCompound(new NumericBooleanExpression(symbolicSelf.getSymbolicLength(),
+																	   NumericComparator.EQ,
+																	   new Constant<Integer>(BuiltinTypes.SINT32, 0)),
+										  LogicalOperator.AND,
+										  new NumericBooleanExpression(symbolicOther.getSymbolicLength(),
+																	   NumericComparator.EQ,
+																	   new Constant<Integer>(BuiltinTypes.SINT32, 0)));
+		ce.decision(ti, null, lengthZero ? 0 : 1, lengthZeroE, new Negation(lengthZeroE));
+		if (lengthCheck && !lengthZero) {
+			Expression all = ExpressionUtil.FALSE;
+			for (int i = 0; i < self.length() - other.length(); i++) {
+				Expression check = ExpressionUtil.TRUE;
+				for (int j = 0; j < other.length(); j++) {
+					check = ExpressionUtil.and(check,
+											   new NumericBooleanExpression(symbolicSelf.getSymbolicChars()[i + j],
+																			NumericComparator.EQ,
+																			symbolicOther.getSymbolicChars()[j]));
+				}
+				all = ExpressionUtil.or(all, check);
+			}
+			boolean concreteContains = self.contains(other);
+			ce.decision(ti, null, concreteContains ? 0 : 1, all, new Negation(all));
+			return concreteContains;
+		} else {
+			return lengthZero;
+		}
 	}
 
 	private static boolean evaluateBoundsRegionMatches(int ooffset,

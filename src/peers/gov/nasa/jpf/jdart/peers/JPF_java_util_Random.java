@@ -79,6 +79,7 @@ public class JPF_java_util_Random extends gov.nasa.jpf.vm.JPF_java_util_Random {
 		ConcolicUtil.Pair<Integer> result = ca.getOrCreateSymbolicInt();
 		if (mi.getName().startsWith("nondetString") &&
 			mi.getClassInfo().getName().startsWith("org.sosy_lab.sv_benchmarks.Verifier")) {
+			//Implicit assumption: Strings will not be longer than BYTE.MAX_VALUE chars.
 			result = ca.getOrCreateSymbolicInt8();
 		}
 
