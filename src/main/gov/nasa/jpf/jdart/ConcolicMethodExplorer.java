@@ -39,7 +39,7 @@ import gov.nasa.jpf.jdart.constraints.InternalConstraintsTree.BranchEffect;
 import gov.nasa.jpf.jdart.constraints.PathResult;
 import gov.nasa.jpf.jdart.constraints.PostCondition;
 import gov.nasa.jpf.jdart.objects.SymbolicObjectsContext;
-import gov.nasa.jpf.jdart.termination.TerminateOnFirstError;
+import gov.nasa.jpf.jdart.termination.TerminateOnAssertionError;
 import gov.nasa.jpf.jdart.termination.TerminationStrategy;
 import gov.nasa.jpf.util.JPFLogger;
 import gov.nasa.jpf.vm.ClassInfo;
@@ -209,10 +209,9 @@ public class ConcolicMethodExplorer {
 		String st = sw.toString();
 		PathResult res = PathResult.error(currValuation, exElem.getClassInfo().getName(), st);
 		constraintsTree.finish(res);
-		if (ts != null && ts instanceof TerminateOnFirstError &&
-			!exElem.getClassInfo().getName().equals("errors.Assume")) {
-			TerminateOnFirstError tofe = (TerminateOnFirstError) ts;
-			tofe.setErrorPathObserved();
+		if (ts != null && ts instanceof TerminateOnAssertionError) {
+			TerminateOnAssertionError tofe = (TerminateOnAssertionError) ts;
+			tofe.notifyObservedErrorWithName(exElem.getClassInfo().getName());
 		}
 	}
 

@@ -15,17 +15,19 @@
 package gov.nasa.jpf.jdart.termination;
 
 /**
- * On default, JDart is going to explore all possible branches as this is the true power of Symbolic Execution
- * without stopping on first error. Nevertheless, sometimes it is desirable to stop he exploration
- * on the first observed error for saving resources.
+ * On default, JDart is going to explore all possible branches as this is the true power of Symbolic Execution without
+ * stopping on first error. Nevertheless, sometimes it is desirable to stop he exploration on the first observed error
+ * for saving resources.
  */
-public class TerminateOnFirstError extends TerminationStrategy {
+public class TerminateOnAssertionError extends TerminationStrategy {
 
 	boolean errorObserved = false;
 	int counter = 0;
 
-	public void setErrorPathObserved(){
-		errorObserved = true;
+	public void notifyObservedErrorWithName(String name) {
+		if (name.equals("java.lang.AssertionError")) {
+			errorObserved = true;
+		}
 		++counter;
 	}
 
@@ -36,9 +38,9 @@ public class TerminateOnFirstError extends TerminationStrategy {
 
 	@Override
 	public String getReason() {
-		if(errorObserved){
+		if (errorObserved) {
 			return "The exploration terminated after " + counter + " observed Errors";
-		}else{
+		} else {
 			return "The exploration has run to completion without any Error Paths.";
 		}
 	}
