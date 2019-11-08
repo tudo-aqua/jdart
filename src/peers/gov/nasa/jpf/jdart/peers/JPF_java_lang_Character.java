@@ -267,8 +267,11 @@ public class JPF_java_lang_Character extends gov.nasa.jpf.vm.JPF_java_lang_Chara
   @Override
   @MJI
   public char toLowerCase__C__C(MJIEnv env, int clsObjRef, char c) {
-    // TODO Auto-generated method stub
-    return super.toLowerCase__C__C(env, clsObjRef, c);
+    System.out.println("JPF_java_lang_Character.toLowerCase__C__C");
+    System.out.println("ToLowerCasePeers");
+    Object[] attrs = env.getArgAttributes();
+    char res = super.toLowerCase__C__C(env, clsObjRef, c);
+    return res;
   }
 
   /* (non-Javadoc)
@@ -287,8 +290,8 @@ public class JPF_java_lang_Character extends gov.nasa.jpf.vm.JPF_java_lang_Chara
   @Override
   @MJI
   public char toUpperCase__C__C(MJIEnv env, int clsObjRef, char c) {
-    // TODO Auto-generated method stub
-    return super.toUpperCase__C__C(env, clsObjRef, c);
+    char res = super.toUpperCase__C__C(env, clsObjRef, c);
+    return res;
   }
 
   /*

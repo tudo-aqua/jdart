@@ -18,72 +18,71 @@ import gov.nasa.jpf.Config;
 import gov.nasa.jpf.annotation.MJI;
 import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
 import gov.nasa.jpf.jdart.ConcolicUtil;
-import gov.nasa.jpf.vm.MJIEnv;
-import gov.nasa.jpf.vm.ThreadInfo;
-
-import gov.nasa.jpf.constraints.api.Variable;
-import gov.nasa.jpf.constraints.java.ObjectConstraints;
-import gov.nasa.jpf.constraints.parser.ParserUtil;
-import gov.nasa.jpf.constraints.types.BuiltinTypes;
-import gov.nasa.jpf.constraints.types.Type;
-import gov.nasa.jpf.jdart.ConcolicUtil.Pair; 
 import gov.nasa.jpf.jdart.annotations.SymbolicPeer;
 import gov.nasa.jpf.vm.ElementInfo;
+import gov.nasa.jpf.vm.MJIEnv;
+import gov.nasa.jpf.vm.MethodInfo;
+import gov.nasa.jpf.vm.StackFrame;
+import gov.nasa.jpf.vm.ThreadInfo;
 
 public class JPF_java_util_Random extends gov.nasa.jpf.vm.JPF_java_util_Random {
-  
-  public JPF_java_util_Random(Config conf) {
-    super(conf);
-  }
 
-  @MJI
-  @SymbolicPeer
-  @Override
-  public boolean nextBoolean____Z(MJIEnv env, int objRef) {
-    ThreadInfo ti = env.getThreadInfo();
-    ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
-    if(ca == null) {
-      return super.nextBoolean____Z(env, objRef);
-    }
+	public JPF_java_util_Random(Config conf) {
+		super(conf);
+	}
 
-    ConcolicUtil.Pair<Boolean> result = ca.getOrCreateSymbolicBoolean();
-    env.setReturnAttribute(result.symb);
-    return result.conc;
-  }
+	@MJI
+	@SymbolicPeer
+	@Override
+	public boolean nextBoolean____Z(MJIEnv env, int objRef) {
+		ThreadInfo ti = env.getThreadInfo();
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		if (ca == null) {
+			return super.nextBoolean____Z(env, objRef);
+		}
 
-  @MJI
-  @SymbolicPeer
-  @Override
-  public void nextBytes___3B__V(MJIEnv env, int objRef, int dataRef) {
-    ThreadInfo ti = env.getThreadInfo();
-    ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
-    if(ca == null) {
-      super.nextBytes___3B__V(env, objRef, dataRef);       
-    }    
+		ConcolicUtil.Pair<Boolean> result = ca.getOrCreateSymbolicBoolean();
+		env.setReturnAttribute(result.symb);
+		return result.conc;
+	}
 
-    ElementInfo ei = env.getElementInfo(dataRef);
-    for (int i=0; i< ei.arrayLength(); i++) {
-      ConcolicUtil.Pair<Byte> newByte = ca.getOrCreateSymbolicByte();
-      ei.setByteElement(i, newByte.conc);
-      ei.addElementAttr(i, newByte.symb);
-    }    
-  }
-    
-  @MJI
-  @SymbolicPeer
-  @Override
-  public int nextInt____I(MJIEnv env, int objRef) {
-    ThreadInfo ti = env.getThreadInfo();
-    ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
-    if(ca == null) {
-      return super.nextInt____I(env, objRef); 
-    }
+	@MJI
+	@SymbolicPeer
+	@Override
+	public void nextBytes___3B__V(MJIEnv env, int objRef, int dataRef) {
+		ThreadInfo ti = env.getThreadInfo();
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		if (ca == null) {
+			super.nextBytes___3B__V(env, objRef, dataRef);
+		}
 
-    ConcolicUtil.Pair<Integer> result = ca.getOrCreateSymbolicInt();
-    env.setReturnAttribute(result.symb);
-    return result.conc;
-  }
-  
-  
-  
+		ElementInfo ei = env.getElementInfo(dataRef);
+		for (int i = 0; i < ei.arrayLength(); i++) {
+			ConcolicUtil.Pair<Byte> newByte = ca.getOrCreateSymbolicByte();
+			ei.setByteElement(i, newByte.conc);
+			ei.addElementAttr(i, newByte.symb);
+		}
+	}
+
+	@MJI
+	@SymbolicPeer
+	@Override
+	public int nextInt____I(MJIEnv env, int objRef) {
+		ThreadInfo ti = env.getThreadInfo();
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		if (ca == null) {
+			return super.nextInt____I(env, objRef);
+		}
+
+		StackFrame sf = env.getThreadInfo().getTopFrame();
+		MethodInfo mi = sf.getPrevious().getMethodInfo();
+		ConcolicUtil.Pair<Integer> result = ca.getOrCreateSymbolicInt();
+		if (mi.getName().startsWith("nondetString") &&
+			mi.getClassInfo().getName().startsWith("org.sosy_lab.sv_benchmarks.Verifier")) {
+			result = ca.getOrCreateSymbolicInt8();
+		}
+
+		env.setReturnAttribute(result.symb);
+		return result.conc;
+	}
 }
