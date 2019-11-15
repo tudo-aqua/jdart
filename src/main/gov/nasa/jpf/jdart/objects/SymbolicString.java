@@ -17,26 +17,42 @@ package gov.nasa.jpf.jdart.objects;
 import gov.nasa.jpf.constraints.api.Expression;
 
 /**
- *
  * @author falk
  */
 public class SymbolicString {
-  
-  private final Expression<Integer> symbolicLength;
-  
-  private final Expression[] symbolicChars;
 
-  public SymbolicString(Expression<Integer> symbolicLength, Expression[] symbolicChars) {
-    this.symbolicLength = symbolicLength;
-    this.symbolicChars = symbolicChars;
-  }
+	private final Expression<Integer> symbolicLength;
+	private boolean isFromSymbolicNumber = false;
+	private SymbolicNumber sn = null;
 
-  public Expression<Integer> getSymbolicLength() {
-    return symbolicLength;
-  }
+	private final Expression[] symbolicChars;
 
-  public Expression[] getSymbolicChars() {
-    return symbolicChars;
-  }
-  
+	public SymbolicString(Expression<Integer> symbolicLength, Expression[] symbolicChars) {
+		this.symbolicLength = symbolicLength;
+		this.symbolicChars = symbolicChars;
+	}
+
+	public Expression<Integer> getSymbolicLength() {
+		return symbolicLength;
+	}
+
+	public Expression[] getSymbolicChars() {
+		return symbolicChars;
+	}
+
+	public boolean isFromNumber() {
+		return isFromSymbolicNumber;
+	}
+
+	public void setIsFromNumber(boolean v) {
+		isFromSymbolicNumber = v;
+	}
+
+	public void setSymbolicNumber(SymbolicNumber sn) {
+		this.sn = sn;
+	}
+
+	public SymbolicNumber getSymbolicNumber() {
+		return sn;
+	}
 }

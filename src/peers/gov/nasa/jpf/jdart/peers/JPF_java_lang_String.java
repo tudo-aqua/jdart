@@ -28,13 +28,18 @@ import gov.nasa.jpf.constraints.expressions.PropositionalCompound;
 import gov.nasa.jpf.constraints.types.BuiltinTypes;
 import gov.nasa.jpf.constraints.util.ExpressionUtil;
 import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
+import gov.nasa.jpf.jdart.ConcolicUtil;
 import gov.nasa.jpf.jdart.annotations.SymbolicPeer;
+import gov.nasa.jpf.jdart.objects.SymbolicNumber;
 import gov.nasa.jpf.jdart.objects.SymbolicString;
 import gov.nasa.jpf.vm.DynamicElementInfo;
 import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.MJIEnv;
 import gov.nasa.jpf.vm.MethodInfo;
 import gov.nasa.jpf.vm.ThreadInfo;
+
+import java.util.ArrayList;
+import java.util.Random;
 
 public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 
@@ -113,10 +118,45 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 		}
 	}
 
+	private boolean equals_numbers(MJIEnv env, int objRef, int argRef) {
+		//argRef is expected to be a concrete String here.
+		SymbolicString symbolic = env.getObjectAttr(objRef, SymbolicString.class);
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+		if (symbolic.getSymbolicNumber().hasBeenConstrained) {
+			//FIXME: Cannot deal with constrained double yet.
+			ca.completePathDontKnow(env.getThreadInfo());
+			return false;
+		}
+		String otherNumber = env.getStringObject(argRef);
+		String self = env.getStringObject(objRef);
+		if (self == null || otherNumber == null) {
+			env.throwException("java.lang.NullPointerException");
+		}
+		try {
+			double otherD = Double.parseDouble(otherNumber);
+			double selfD = Double.parseDouble(self);
+			Expression equal = new NumericBooleanExpression(new Constant<Double>(BuiltinTypes.DOUBLE, otherD),
+															NumericComparator.EQ,
+															symbolic.getSymbolicNumber().symbolicNumber);
+			Expression notEqual = new NumericBooleanExpression(new Constant<Double>(BuiltinTypes.DOUBLE, otherD),
+															   NumericComparator.NE,
+															   symbolic.getSymbolicNumber().symbolicNumber);
+			ca.decision(env.getThreadInfo(), null, otherD == selfD ? 0 : 1, equal, notEqual);
+			return otherD == selfD;
+		}
+		catch (NumberFormatException e) {
+			env.throwException("java.lang.NumberFormatException");
+		}
+		return false;
+	}
+
 	@MJI
 	@SymbolicPeer
 	@Override
 	public boolean equals__Ljava_lang_Object_2__Z(MJIEnv env, int objRef, int argRef) {
+		if (argRef == env.NULL) {
+			return false;
+		}
 
 		ThreadInfo ti = env.getThreadInfo();
 		ConcolicMethodExplorer analysis = ConcolicMethodExplorer.getCurrentAnalysis(ti);
@@ -159,6 +199,10 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 		System.out.println("----- one symbolic!");
 
 		SymbolicString symb = (symbThis != null) ? symbThis : symbOther;
+		if (symb.isFromNumber()) {
+			return equals_numbers(env, (symbThis != null) ? objRef : argRef, (symbThis != null) ? argRef : objRef);
+		}
+
 		int symbRef = (symbThis != null) ? objRef : argRef;
 		int concRef = (symbThis != null) ? argRef : objRef;
 
@@ -576,5 +620,173 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 		int branchIndex = concreteResult ? 0 : 1;
 		ca.decision(ti, null, branchIndex, completeString, new Negation(completeString));
 		return concreteResult;
+	}
+
+	@MJI
+	public static int valueOf__D__Ljava_lang_String_2(MJIEnv env, int objRef, double value) {
+		Object[] attrs = env.getArgAttributes();
+		String res = String.valueOf(value);
+		if (attrs != null) {
+			for (Object o : attrs) {
+				if (o instanceof SymbolicNumber) {
+					SymbolicNumber sn = (SymbolicNumber) o;
+					ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+					ConcolicUtil.Pair<Integer> length = ca.getOrCreateSymbolicInt8();
+					Expression[] symbolicChars = new Expression[res.length()];
+					for (int i = 0; i < res.length(); i++) {
+						symbolicChars[i] = ca.getOrCreateSymbolicByte().symb;
+					}
+					SymbolicString symbolicRes = new SymbolicString(length.symb, symbolicChars);
+					symbolicRes.setIsFromNumber(true);
+					symbolicRes.setSymbolicNumber(sn);
+					env.setReturnAttribute(symbolicRes);
+				}
+			}
+		}
+		return env.newString(res);
+	}
+
+	@MJI
+	@Override
+	public int substring__I__Ljava_lang_String_2(MJIEnv env, int objRef, int beginIndex) {
+		SymbolicString symbolicValue = env.getObjectAttr(objRef, SymbolicString.class);
+		if (symbolicValue == null) {
+			return super.substring__I__Ljava_lang_String_2(env, objRef, beginIndex);
+		}
+		if (env.getArgAttributes() != null && env.getArgAttributes()[1] != null) {
+			System.out.println("JPF_java_lang_String.substring__I__Ljava_lang_String_2");
+			System.out.println("Cannot deal with symbolic values in args");
+			env.throwException("error.Assume");
+			return -1;
+		}
+		if (beginIndex < 0) {
+			env.throwException("java.lang.IndexOutOfBoundsException");
+			return -1;
+		}
+		String concreteValue = env.getStringObject(objRef);
+		Expression upperBound = new NumericBooleanExpression(new Constant<>(BuiltinTypes.SINT32, beginIndex),
+															 NumericComparator.GT,
+															 symbolicValue.getSymbolicLength());
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+		ca.decision(env.getThreadInfo(),
+					null,
+					beginIndex > concreteValue.length() ? 0 : 1,
+					upperBound,
+					new Negation(upperBound));
+		if (beginIndex > concreteValue.length()) {
+			env.throwException("java.lang.IndexOutOfBoundsException");
+			return -1;
+		}
+		int resValue = env.newString(concreteValue.substring(beginIndex));
+		ArrayList<Expression> symbolicChars = new ArrayList<>();
+		for (int i = beginIndex; i < concreteValue.length(); i++) {
+			symbolicChars.add(symbolicValue.getSymbolicChars()[i]);
+		}
+		ConcolicUtil.Pair<Integer> symbolicLength = ca.getOrCreateSymbolicInt8();
+		env.addObjectAttr(resValue, new SymbolicString(symbolicLength.symb, symbolicChars.toArray(new Expression[0])));
+		return resValue;
+	}
+
+	@MJI
+	@Override
+	@SymbolicPeer
+	public int substring__II__Ljava_lang_String_2(MJIEnv env, int objRef, int beginIndex, int endIndex) {
+		SymbolicString symbolicValue = env.getObjectAttr(objRef, SymbolicString.class);
+		if (symbolicValue == null) {
+			return super.substring__II__Ljava_lang_String_2(env, objRef, beginIndex, endIndex);
+		}
+		if (env.getArgAttributes() != null &&
+			(env.getArgAttributes()[1] != null || env.getArgAttributes()[2] != null)) {
+			System.out.println("JPF_java_lang_String.substring__II__Ljava_lang_String_2");
+			System.out.println("Cannot deal with symbolic values in args");
+			env.throwException("error.Assume");
+			return -1;
+		}
+		if (beginIndex < 0) {
+			env.throwException("java.lang.IndexOutOfBoundsException");
+			return -1;
+		}
+		String concreteValue = env.getStringObject(objRef);
+		Expression upperBound = new NumericBooleanExpression(new Constant<>(BuiltinTypes.SINT32, endIndex),
+															 NumericComparator.GT,
+															 symbolicValue.getSymbolicLength());
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+		ca.decision(env.getThreadInfo(),
+					null,
+					beginIndex > concreteValue.length() ? 0 : 1,
+					upperBound,
+					new Negation(upperBound));
+		if (endIndex > concreteValue.length() || beginIndex > endIndex) {
+			env.throwException("java.lang.IndexOutOfBoundsException");
+			return -1;
+		}
+		int resValue = env.newString(concreteValue.substring(beginIndex, endIndex));
+		ArrayList<Expression> symbolicChars = new ArrayList<>();
+		for (int i = beginIndex; i < concreteValue.length(); i++) {
+			symbolicChars.add(symbolicValue.getSymbolicChars()[i]);
+		}
+		ConcolicUtil.Pair<Integer> symbolicLength = ca.getOrCreateSymbolicInt8();
+		env.addObjectAttr(resValue, new SymbolicString(symbolicLength.symb, symbolicChars.toArray(new Expression[0])));
+		return resValue;
+	}
+
+	@MJI
+	@Override
+	@SymbolicPeer
+	public int split__Ljava_lang_String_2___3Ljava_lang_String_2(MJIEnv env, int objRef, int rString0) {
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+		ElementInfo ei = env.getElementInfo(objRef);
+		SymbolicString symbolic = ei.getObjectAttr(SymbolicString.class);
+		if (symbolic != null) {
+			String concreteValue = ei.asString();
+			ConcolicUtil.Pair<Integer> arrayLength = ca.getOrCreateSymbolicInt8();
+			Expression lengthConstraint =
+					new PropositionalCompound(new NumericBooleanExpression(symbolic.getSymbolicLength(),
+																		   NumericComparator.GT,
+																		   arrayLength.symb),
+											  LogicalOperator.AND,
+											  new NumericBooleanExpression(arrayLength.symb,
+																		   NumericComparator.GE,
+																		   new Constant(BuiltinTypes.SINT32, 0)));
+
+			ca.decision(env.getThreadInfo(),
+						null,
+						concreteValue.length() > arrayLength.conc ? 0 : 1,
+						lengthConstraint,
+						new Negation(lengthConstraint));
+			if (concreteValue.length() > arrayLength.conc && arrayLength.conc > 0) {
+				int arrayRef = env.newObjectArray("java.lang.String", arrayLength.conc);
+				int[] fields = env.getReferenceArrayObject(arrayRef);
+				int remaining = concreteValue.length();
+				for (int j = 0; j < fields.length; j++) {
+					Random r = new Random();
+					int upperBound = remaining - (fields.length - j - 1);
+					int length = r.nextInt(upperBound);
+					remaining -= length;
+					byte[] content = new byte[length];
+					r.nextBytes(content);
+					String subString = new String(content);
+					ArrayList<Expression> symbolicChars = new ArrayList<>();
+					for (int i = 0; i < subString.length(); i++) {
+						symbolicChars.add(ca.getOrCreateSymbolicByte().symb);
+					}
+					ConcolicUtil.Pair<Integer> newLength = ca.getOrCreateSymbolicInt8();
+					int ref = env.newString(subString);
+					fields[j] = ref;
+					env.addObjectAttr(ref,
+									  new SymbolicString(newLength.symb, symbolicChars.toArray(new Expression[0])));
+				}
+
+				env.setObjectAttr(arrayRef, arrayLength.symb);
+				return arrayRef;
+			} else {
+				int arrayRef = env.newObjectArray("java.lang.String", 1);
+				int[] fields = env.getReferenceArrayObject(arrayRef);
+				fields[0] = objRef;
+				return arrayRef;
+			}
+		} else {
+			return super.split__Ljava_lang_String_2___3Ljava_lang_String_2(env, objRef, rString0);
+		}
 	}
 }

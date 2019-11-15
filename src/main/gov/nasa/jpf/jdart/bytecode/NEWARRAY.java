@@ -22,21 +22,21 @@ import gov.nasa.jpf.vm.ThreadInfo;
 
 public class NEWARRAY extends gov.nasa.jpf.jvm.bytecode.NEWARRAY {
 
-  public NEWARRAY(int typeCode) {
-    super(typeCode);
-  }
+	public NEWARRAY(int typeCode) {
+		super(typeCode);
+	}
 
-  @Override
-  public Instruction execute(ThreadInfo ti) {
-    StackFrame sf = ti.getTopFrame();
-    if (sf.getOperandAttr(0) != null) {
-      ConcolicUtil.Pair<Integer> length = ConcolicUtil.peekInt(sf);
-      Instruction i = super.execute(ti);
-      ElementInfo ei =  ti.getHeap().get(sf.peek());
-      ei.setObjectAttr(length.symb);
-      return i;
-    }
+	@Override
+	public Instruction execute(ThreadInfo ti) {
+		StackFrame sf = ti.getTopFrame();
+		if (sf.getOperandAttr(0) != null) {
+			ConcolicUtil.Pair<Integer> length = ConcolicUtil.peekInt(sf);
+			Instruction i = super.execute(ti);
+			ElementInfo ei = ti.getHeap().get(sf.peek());
+			ei.addObjectAttr(length.symb);
+			return i;
+		}
 
-    return super.execute(ti);
-  }
+		return super.execute(ti);
+	}
 }

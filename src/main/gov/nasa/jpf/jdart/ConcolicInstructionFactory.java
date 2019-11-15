@@ -1,23 +1,24 @@
 /*
- * Copyright (C) 2015, United States Government, as represented by the 
+ * Copyright (C) 2015, United States Government, as represented by the
  * Administrator of the National Aeronautics and Space Administration.
  * All rights reserved.
  *
  * Modifications Copyright 2019 TU Dortmund, Falk Howar (@fhowar)
  *
- * The PSYCO: A Predicate-based Symbolic Compositional Reasoning environment 
- * platform is licensed under the Apache License, Version 2.0 (the "License"); you 
- * may not use this file except in compliance with the License. You may obtain a 
- * copy of the License at http://www.apache.org/licenses/LICENSE-2.0. 
- * 
- * Unless required by applicable law or agreed to in writing, software distributed 
- * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR 
- * CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+ * The PSYCO: A Predicate-based Symbolic Compositional Reasoning environment
+ * platform is licensed under the Apache License, Version 2.0 (the "License"); you
+ * may not use this file except in compliance with the License. You may obtain a
+ * copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 package gov.nasa.jpf.jdart;
 
 import gov.nasa.jpf.JPF;
+import gov.nasa.jpf.jdart.bytecode.ARRAYLENGTH;
 import gov.nasa.jpf.jdart.bytecode.ATHROW;
 import gov.nasa.jpf.jdart.bytecode.BALOAD;
 import gov.nasa.jpf.jdart.bytecode.D2F;
@@ -73,6 +74,7 @@ import gov.nasa.jpf.jdart.bytecode.IOR;
 import gov.nasa.jpf.jdart.bytecode.IREM;
 import gov.nasa.jpf.jdart.bytecode.ISHL;
 import gov.nasa.jpf.jdart.bytecode.ISHR;
+import gov.nasa.jpf.jdart.bytecode.ISTORE;
 import gov.nasa.jpf.jdart.bytecode.ISUB;
 import gov.nasa.jpf.jdart.bytecode.IUSHR;
 import gov.nasa.jpf.jdart.bytecode.IXOR;
@@ -108,35 +110,40 @@ import gov.nasa.jpf.vm.NativeMethodInfo;
  * Refactored version to use the DefaultInstructionFactory -- re-written corina
  */
 public class ConcolicInstructionFactory extends gov.nasa.jpf.jvm.bytecode.InstructionFactory {
-	
-  public static final boolean DEBUG = false;
-  public static JPFLogger logger = JPF.getLogger("jdart");
-  
 
-  /* (non-Javadoc)
-   * @see gov.nasa.jpf.jvm.bytecode.InstructionFactory#executenative(gov.nasa.jpf.vm.NativeMethodInfo)
-   */
-  @Override
-  public Instruction executenative(NativeMethodInfo mi) {
-    return new EXECUTENATIVE(mi);
-  }
+	public static final boolean DEBUG = false;
+	public static JPFLogger logger = JPF.getLogger("jdart");
 
-  /* (non-Javadoc)
-   * @see gov.nasa.jpf.jvm.bytecode.InstructionFactory#nativereturn()
-   */
-  @Override
-  public Instruction nativereturn() {
-    return new NATIVERETURN();
-  }
-  
-  @Override
-  public gov.nasa.jpf.jvm.bytecode.ATHROW athrow() {
-    return new ATHROW();
-  }
+
+	/* (non-Javadoc)
+	 * @see gov.nasa.jpf.jvm.bytecode.InstructionFactory#executenative(gov.nasa.jpf.vm.NativeMethodInfo)
+	 */
+	@Override
+	public Instruction executenative(NativeMethodInfo mi) {
+		return new EXECUTENATIVE(mi);
+	}
+
+	/* (non-Javadoc)
+	 * @see gov.nasa.jpf.jvm.bytecode.InstructionFactory#nativereturn()
+	 */
+	@Override
+	public Instruction nativereturn() {
+		return new NATIVERETURN();
+	}
+
+	@Override
+	public gov.nasa.jpf.jvm.bytecode.ATHROW athrow() {
+		return new ATHROW();
+	}
+
+	@Override
+	public gov.nasa.jpf.jvm.bytecode.ARRAYLENGTH arraylength() {
+		return new ARRAYLENGTH();
+	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.IADD iadd() {
-	  return new IADD();
+		return new IADD();
 	}
 
 	@Override
@@ -152,6 +159,11 @@ public class ConcolicInstructionFactory extends gov.nasa.jpf.jvm.bytecode.Instru
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.IASTORE iastore() {
 		return new IASTORE();
+	}
+
+	@Override
+	public gov.nasa.jpf.jvm.bytecode.ISTORE istore(int localVarIndex) {
+		return new ISTORE(localVarIndex);
 	}
 
 	@Override
@@ -203,7 +215,7 @@ public class ConcolicInstructionFactory extends gov.nasa.jpf.jvm.bytecode.Instru
 	public gov.nasa.jpf.jvm.bytecode.IFNE ifne(int targetPc) {
 		return new IFNE(targetPc);
 	}
-	
+
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.IF_ICMPGE if_icmpge(int targetPc) {
 		return new IF_ICMPGE(targetPc);
@@ -427,90 +439,89 @@ public class ConcolicInstructionFactory extends gov.nasa.jpf.jvm.bytecode.Instru
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.D2L d2l() {
-		return  new D2L();
+		return new D2L();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.I2F i2f() {
-		return  new I2F();
+		return new I2F();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.L2D l2d() {
-		return  new L2D();
+		return new L2D();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.L2F l2f() {
-		return  new L2F();
+		return new L2F();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.F2L f2l() {
-		return  new F2L();
+		return new F2L();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.F2I f2i() {
-		return  new F2I();
+		return new F2I();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.SwitchInstruction lookupswitch(int defaultTargetPc, int nEntries) {
-		return  new LOOKUPSWITCH(defaultTargetPc, nEntries);
+		return new LOOKUPSWITCH(defaultTargetPc, nEntries);
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.SwitchInstruction tableswitch(int defaultTargetPc, int low, int high) {
-		return  new TABLESWITCH(defaultTargetPc, low, high);
+		return new TABLESWITCH(defaultTargetPc, low, high);
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.D2F d2f() {
-		return  new D2F();
+		return new D2F();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.F2D f2d() {
-		return  new F2D();
+		return new F2D();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.I2B i2b() {
-		return  new I2B();
+		return new I2B();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.I2C i2c() {
-		return  new I2C();
+		return new I2C();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.I2S i2s() {
-		return  new I2S();
+		return new I2S();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.I2L i2l() {
-		return  new I2L();
+		return new I2L();
 	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.L2I l2i() {
-		return  new L2I();
+		return new L2I();
 	}
 
-  @Override
-  public Instruction newarray(int typeCode) {
-    return new NEWARRAY(typeCode);
-  }
+	@Override
+	public Instruction newarray(int typeCode) {
+		return new NEWARRAY(typeCode);
+	}
 
-  
-  @Override
-  public Instruction baload() {
-    return new BALOAD();
-  }
-  
-  
-   
+
+	@Override
+	public Instruction baload() {
+		return new BALOAD();
+	}
+
+
 }

@@ -2,10 +2,25 @@ package gov.nasa.jpf.jdart.peers;
 
 import gov.nasa.jpf.annotation.MJI;
 import gov.nasa.jpf.constraints.api.Expression;
+import gov.nasa.jpf.constraints.expressions.CastExpression;
+import gov.nasa.jpf.constraints.expressions.Constant;
+import gov.nasa.jpf.constraints.expressions.LogicalOperator;
+import gov.nasa.jpf.constraints.expressions.Negation;
+import gov.nasa.jpf.constraints.expressions.NumericBooleanExpression;
+import gov.nasa.jpf.constraints.expressions.NumericComparator;
+import gov.nasa.jpf.constraints.expressions.NumericCompound;
+import gov.nasa.jpf.constraints.expressions.NumericOperator;
+import gov.nasa.jpf.constraints.expressions.PropositionalCompound;
+import gov.nasa.jpf.constraints.types.BuiltinTypes;
+import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
+import gov.nasa.jpf.jdart.ConcolicUtil;
 import gov.nasa.jpf.jdart.annotations.SymbolicPeer;
 import gov.nasa.jpf.jdart.objects.SymbolicString;
 import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.MJIEnv;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class JPF_java_lang_StringBuilder extends gov.nasa.jpf.vm.JPF_java_lang_StringBuilder {
 
@@ -27,7 +42,9 @@ public class JPF_java_lang_StringBuilder extends gov.nasa.jpf.vm.JPF_java_lang_S
 		ElementInfo ei = env.getElementInfo(objref);
 		SymbolicString symbolic = ei.getObjectAttr(SymbolicString.class);
 		int length = env.getIntField(objref, "count");
-		env.setReturnAttribute(symbolic.getSymbolicLength());
+		if (symbolic != null) {
+			env.setReturnAttribute(symbolic.getSymbolicLength());
+		}
 		return length;
 	}
 
@@ -37,18 +54,61 @@ public class JPF_java_lang_StringBuilder extends gov.nasa.jpf.vm.JPF_java_lang_S
 	/*
 	 * gets always implicitly called by string concatenation via + operator
 	 */ public int append__Ljava_lang_String_2__Ljava_lang_StringBuilder_2(MJIEnv env, int objref, int sref) {
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
 		ElementInfo ei = env.getElementInfo(sref);
 		if (ei == null || ei.isNull()) {
 			return super.append__Ljava_lang_String_2__Ljava_lang_StringBuilder_2(env, objref, sref);
 		}
-		SymbolicString symb = ei.getObjectAttr(SymbolicString.class);
-		//test for symbolic string
-		if (symb != null) {
-			env.addObjectAttr(objref, symb);
+
+		SymbolicString symbParam = ei.getObjectAttr(SymbolicString.class);
+
+		ElementInfo eiSB = env.getElementInfo(objref);
+		SymbolicString symbSB = eiSB.getObjectAttr(SymbolicString.class);
+
+		if (symbSB == null) {
+			int field = env.getReferenceField(objref, "value");
+			char[] values = env.getCharArrayObject(field);
+			ArrayList<Expression> symbolicChars = new ArrayList<>();
+			for (char c : values) {
+				ConcolicUtil.Pair newSymbolicChar = ca.getOrCreateSymbolicByte();
+				Expression valueAssignment = new NumericBooleanExpression(newSymbolicChar.symb,
+																		  NumericComparator.EQ,
+																		  new Constant<Byte>(BuiltinTypes.SINT8,
+																							 (byte) c));
+				ca.decision(env.getThreadInfo(), null, 0, valueAssignment);
+				symbolicChars.add(newSymbolicChar.symb);
+			}
+			ConcolicUtil.Pair<Integer> symbolicLength = ca.getOrCreateSymbolicInt8();
+			Expression valueAssignment = new NumericBooleanExpression(symbolicLength.symb,
+																	  NumericComparator.EQ,
+																	  new Constant<Byte>(BuiltinTypes.SINT8,
+																						 (byte) env.getIntField(objref,
+																												"count"
+																						 )));
+			ca.decision(env.getThreadInfo(), null, 0, valueAssignment);
+			symbSB = new SymbolicString(symbolicLength.symb, symbolicChars.toArray(new Expression[0]));
 		}
 
-		ElementInfo debug = env.getElementInfo(objref);
-		return super.append__Ljava_lang_String_2__Ljava_lang_StringBuilder_2(env, objref, sref);
+		int concreteResultRef = super.append__Ljava_lang_String_2__Ljava_lang_StringBuilder_2(env, objref, sref);
+
+		//test for symbolic string
+		if (symbParam != null) {
+			ArrayList<Expression> newChars = new ArrayList(Arrays.asList(symbSB.getSymbolicChars()));
+			for (Expression symbolicChar : symbParam.getSymbolicChars()) {
+				newChars.add(symbolicChar);
+			}
+			ConcolicUtil.Pair<Integer> newSymbolicLength = ca.getOrCreateSymbolicInt8();
+			Expression left = symbSB.getSymbolicLength().getType().equals(BuiltinTypes.SINT8) ?
+					CastExpression.create(symbSB.getSymbolicLength(), BuiltinTypes.SINT32) :
+					symbSB.getSymbolicLength();
+
+			Expression newSymbolicLengthConstraint =
+					new NumericCompound<Integer>(left, NumericOperator.PLUS, symbParam.getSymbolicLength());
+			//ca.decision(env.getThreadInfo(), null, 0, newSymbolicLength.symb);
+			symbSB = new SymbolicString(newSymbolicLengthConstraint, newChars.toArray(new Expression[0]));
+			env.addObjectAttr(concreteResultRef, symbSB);
+		}
+		return concreteResultRef;
 	}
 
 	@MJI
@@ -75,16 +135,34 @@ public class JPF_java_lang_StringBuilder extends gov.nasa.jpf.vm.JPF_java_lang_S
 		SymbolicString symbolic = env.getObjectAttr(objref, SymbolicString.class);
 		int field = env.getReferenceField(objref, "value");
 		char[] values = env.getCharArrayObject(field);
+		Object[] attrs = env.getArgAttributes();
+		if (attrs != null && attrs[1] != null) {
+			//Expect index to be concrete for now.
+			env.throwException("errors.Assume");
+		}
 		if (symbolic != null) {
-			if (symbolic.getSymbolicChars().length == 0 ||
-				!(index >= 0 && index < symbolic.getSymbolicChars().length)) {
+			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+			Expression indexWithinBounds =
+					new PropositionalCompound(new NumericBooleanExpression(new Constant<Integer>(
+					BuiltinTypes.SINT32,
+					index), NumericComparator.LT, symbolic.getSymbolicLength()),
+																	 LogicalOperator.AND,
+																	 new NumericBooleanExpression(new Constant<Integer>(
+																			 BuiltinTypes.SINT32,
+																			 0),
+																								  NumericComparator.LT,
+																								  symbolic.getSymbolicLength()));
+			if (!(index >= 0 && index < symbolic.getSymbolicChars().length)) {
+				ca.decision(env.getThreadInfo(), null, 1, indexWithinBounds, new Negation(indexWithinBounds));
+
 				env.throwException("java.lang.IndexOutOfBoundsException");
 			} else {
+				ca.decision(env.getThreadInfo(), null, 0, indexWithinBounds, new Negation(indexWithinBounds));
 				env.setReturnAttribute(symbolic.getSymbolicChars()[index]);
 				return (char) values[index];
 			}
 		} else {
-			if (index > 0 && index < values.length) {
+			if (index >= 0 && index < values.length) {
 				return (char) values[index];
 			} else {
 				env.throwException("java.lang.IndexOutOfBoundsException");
@@ -116,7 +194,45 @@ public class JPF_java_lang_StringBuilder extends gov.nasa.jpf.vm.JPF_java_lang_S
 			for (int i = 0; i + start < end; i++) {
 				symbolicChars[dest_start + i] = symbolic.getSymbolicChars()[i + start];
 			}
-			eiCA.setObjectAttr(new SymbolicString(symbolic.getSymbolicLength(), symbolicChars));
+			eiCA.addObjectAttr(new SymbolicString(symbolic.getSymbolicLength(), symbolicChars));
+		}
+	}
+
+	@MJI
+	@SymbolicPeer
+	public void setCharAt__IC__V(MJIEnv env, int objref, int index, char character) {
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+		Object[] attrs = env.getArgAttributes();
+		if (attrs != null && attrs[1] != null && attrs[2] != null) {
+			env.throwException("errors.Assume");
+		}
+
+		ElementInfo ei = env.getElementInfo(objref);
+		SymbolicString symbolicString = ei.getObjectAttr(SymbolicString.class);
+
+		int field = env.getReferenceField(objref, "value");
+		char[] values = env.getCharArrayObject(field);
+		int length = env.getIntField(objref, "count");
+
+		if (symbolicString != null) {
+			Expression stringLength = new NumericBooleanExpression(new Constant<Integer>(BuiltinTypes.SINT32, index),
+																   NumericComparator.GE,
+																   symbolicString.getSymbolicLength());
+			ca.decision(env.getThreadInfo(), null, index >= length ? 0 : 1, stringLength, new Negation(stringLength));
+		}
+		if (index >= length || index < 0) {
+			env.throwException("java.lang.StringIndexOutOfBoundsException");
+			return;
+		}
+		values[index] = character;
+		if (symbolicString != null) {
+			Expression[] symbolicChars = symbolicString.getSymbolicChars();
+			Expression charConstraint = new NumericBooleanExpression(symbolicChars[index],
+																	 NumericComparator.EQ,
+																	 new Constant<Byte>(BuiltinTypes.SINT8,
+																						(byte) character));
+			ca.decision(env.getThreadInfo(), null, 0, charConstraint);
+			env.setObjectAttr(objref, symbolicString);
 		}
 	}
 }

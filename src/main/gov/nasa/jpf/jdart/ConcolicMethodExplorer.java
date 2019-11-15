@@ -516,6 +516,33 @@ public class ConcolicMethodExplorer {
 		return new Pair<>(val, var);
 	}
 
+	public Pair<Float> getOrCreateSymbolicFloat() {
+		Variable var = new Variable(BuiltinTypes.FLOAT, "_float" + count++);
+		Float val = (Float) currValuation.getValue(var);
+		if (val == null) {
+			val = 0f;
+		}
+		return new Pair<>(val, var);
+	}
+
+	public Pair<Double> getOrCreateSymbolicDouble() {
+		Variable var = new Variable(BuiltinTypes.DOUBLE, "_double" + count++);
+		Double val = (Double) currValuation.getValue(var);
+		if (val == null) {
+			val = 0.0;
+		}
+		return new Pair<>(val, var);
+	}
+
+	public Pair<Long> getOrCreateSymbolicLong() {
+		Variable var = new Variable(BuiltinTypes.SINT64, "_long" + count++);
+		Long val = (Long) currValuation.getValue(var);
+		if (val == null) {
+			val = 0l;
+		}
+		return new Pair<>(val, var);
+	}
+
 	// LEGACY API
 
 	@Deprecated
