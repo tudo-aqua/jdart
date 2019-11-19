@@ -17,6 +17,7 @@ package gov.nasa.jpf.jdart.peers;
 import gov.nasa.jpf.annotation.MJI;
 import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.Variable;
+import gov.nasa.jpf.constraints.expressions.CastExpression;
 import gov.nasa.jpf.constraints.expressions.Constant;
 import gov.nasa.jpf.constraints.expressions.LogicalOperator;
 import gov.nasa.jpf.constraints.expressions.Negation;
@@ -30,6 +31,7 @@ import gov.nasa.jpf.constraints.util.ExpressionUtil;
 import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
 import gov.nasa.jpf.jdart.ConcolicUtil;
 import gov.nasa.jpf.jdart.annotations.SymbolicPeer;
+import gov.nasa.jpf.jdart.exceptions.SymbolicModellingError;
 import gov.nasa.jpf.jdart.objects.SymbolicNumber;
 import gov.nasa.jpf.jdart.objects.SymbolicString;
 import gov.nasa.jpf.vm.DynamicElementInfo;
@@ -40,6 +42,7 @@ import gov.nasa.jpf.vm.ThreadInfo;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Set;
 
 public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 
@@ -51,7 +54,7 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 		Expression symbLength = eiSource.getObjectAttr(Expression.class);
 		Expression[] symbChars = new Expression[eiSource.arrayLength()];
 		for (int i = 0; i < eiSource.arrayLength(); i++) {
-			symbChars[i] = eiSource.getElementAttr(i, Expression.class);
+			symbChars[i] = CastExpression.create(eiSource.getElementAttr(i, Expression.class), BuiltinTypes.UINT16);
 		}
 		env.setObjectAttr(objRef, new SymbolicString(symbLength, symbChars));
 		return super.init___3BII__Ljava_lang_String_2(env, objRef, bytesRef, offset, length);
@@ -175,9 +178,17 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 			String selfConcrete = env.getStringObject(objRef);
 			String otherConcrete = env.getStringObject(argRef);
 			boolean lengthSat = (selfConcrete.length() == otherConcrete.length());
-			Expression equalLength = new NumericBooleanExpression(symbThis.getSymbolicLength(),
-																  NumericComparator.EQ,
-																  symbOther.getSymbolicLength());
+
+			Expression left = symbThis.getSymbolicLength().getType().equals(BuiltinTypes.SINT32) &&
+							  symbThis.getSymbolicLength() instanceof CastExpression ?
+					((CastExpression) symbThis.getSymbolicLength()).getCasted() :
+					symbThis.getSymbolicLength();
+			Expression right = symbOther.getSymbolicLength().getType().equals(BuiltinTypes.SINT32) &&
+							   symbOther.getSymbolicLength() instanceof CastExpression ?
+					((CastExpression) symbOther.getSymbolicLength()).getCasted() :
+					symbOther.getSymbolicLength();
+
+			Expression equalLength = new NumericBooleanExpression(left, NumericComparator.EQ, right);
 			analysis.decision(ti, null, lengthSat ? 0 : 1, equalLength, new Negation(equalLength));
 
 			if (lengthSat) {
@@ -234,15 +245,12 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 		}
 
 		Expression[] chars = symb.getSymbolicChars();
-		Variable v = (Variable) chars[0];
-		int idx0 = Integer.parseInt(v.getName().replace("_byte", ""));
+		int idx0 = extractBaseIndexFromExpression(chars[0]);
 
 		Expression[] chareqs = new Expression[concString.length()];
 		for (int i = 0; i < concString.length(); i++) {
-
-			chareqs[i] = new NumericBooleanExpression(new Variable<>(BuiltinTypes.SINT8, "_byte" + (idx0 + i)),
-													  NumericComparator.EQ,
-													  new Constant<>(BuiltinTypes.SINT8, (byte) concString.charAt(i)));
+			Constant<Character> concChar = new Constant<Character>(BuiltinTypes.UINT16, concString.charAt(i));
+			chareqs[i] = new NumericBooleanExpression(chars[i], NumericComparator.EQ, concChar);
 		}
 
 		Expression equals = ExpressionUtil.and(chareqs);
@@ -280,7 +288,14 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 			if (length == null) {
 				length = s2.getSymbolicLength();
 			} else {
-				length = new NumericCompound(length, NumericOperator.PLUS, s2.getSymbolicLength());
+				length = length.getType().equals(BuiltinTypes.SINT32) && length instanceof CastExpression ?
+						((CastExpression) length).getCasted() :
+						length;
+				Expression right = s2.getSymbolicLength();
+				right = right.getType().equals(BuiltinTypes.SINT32) && right instanceof CastExpression ?
+						((CastExpression) right).getCasted() :
+						length;
+				length = new NumericCompound(length, NumericOperator.PLUS, right);
 			}
 			symbolicChars = resulting;
 		}
@@ -422,11 +437,12 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 					check = ExpressionUtil.and(check,
 											   new NumericBooleanExpression(symbolicChars[selfSymbolic ? i + j : j],
 																			NumericComparator.EQ,
-																			new Constant<Byte>(BuiltinTypes.SINT8,
-																							   (byte) concreteChars.charAt(
-																									   selfSymbolic ?
-																											   i + j :
-																											   j))));
+																			new Constant<Character>(BuiltinTypes.UINT16,
+																									concreteChars.charAt(
+																											selfSymbolic ?
+																													i +
+																													j :
+																													j))));
 				}
 				all = ExpressionUtil.or(all, check);
 			}
@@ -747,7 +763,7 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 											  LogicalOperator.AND,
 											  new NumericBooleanExpression(arrayLength.symb,
 																		   NumericComparator.GE,
-																		   new Constant(BuiltinTypes.SINT32, 0)));
+																		   new Constant(BuiltinTypes.SINT8, 0)));
 
 			ca.decision(env.getThreadInfo(),
 						null,
@@ -768,7 +784,7 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 					String subString = new String(content);
 					ArrayList<Expression> symbolicChars = new ArrayList<>();
 					for (int i = 0; i < subString.length(); i++) {
-						symbolicChars.add(ca.getOrCreateSymbolicByte().symb);
+						symbolicChars.add(ca.getOrCreateSymbolicChar().symb);
 					}
 					ConcolicUtil.Pair<Integer> newLength = ca.getOrCreateSymbolicInt8();
 					int ref = env.newString(subString);
@@ -788,5 +804,25 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 		} else {
 			return super.split__Ljava_lang_String_2___3Ljava_lang_String_2(env, objRef, rString0);
 		}
+	}
+
+	private static int extractBaseIndexFromExpression(Expression symbolicChar) {
+		Set<Variable<?>> vars = ExpressionUtil.freeVariables(symbolicChar);
+		if (vars.size() != 1) {
+			throw new SymbolicModellingError(
+					"Cannot determine base index for char if not exactly one variable in the expression");
+		}
+		String value = "-1";
+		for (Variable v : vars) {
+			String name = v.getName();
+			if (name.contains("_byte")) {
+				value = name.replace("_byte", "");
+			} else if (name.contains("_char")) {
+				value = name.replace("_char", "");
+			} else {
+				throw new SymbolicModellingError("No _byte or _char in variable name.");
+			}
+		}
+		return Integer.parseInt(value);
 	}
 }

@@ -74,7 +74,6 @@ import gov.nasa.jpf.jdart.bytecode.IOR;
 import gov.nasa.jpf.jdart.bytecode.IREM;
 import gov.nasa.jpf.jdart.bytecode.ISHL;
 import gov.nasa.jpf.jdart.bytecode.ISHR;
-import gov.nasa.jpf.jdart.bytecode.ISTORE;
 import gov.nasa.jpf.jdart.bytecode.ISUB;
 import gov.nasa.jpf.jdart.bytecode.IUSHR;
 import gov.nasa.jpf.jdart.bytecode.IXOR;
@@ -161,10 +160,6 @@ public class ConcolicInstructionFactory extends gov.nasa.jpf.jvm.bytecode.Instru
 		return new IASTORE();
 	}
 
-	@Override
-	public gov.nasa.jpf.jvm.bytecode.ISTORE istore(int localVarIndex) {
-		return new ISTORE(localVarIndex);
-	}
 
 	@Override
 	public gov.nasa.jpf.jvm.bytecode.IINC iinc(int localVarIndex, int incConstant) {

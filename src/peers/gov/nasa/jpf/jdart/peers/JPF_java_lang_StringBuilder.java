@@ -65,28 +65,27 @@ public class JPF_java_lang_StringBuilder extends gov.nasa.jpf.vm.JPF_java_lang_S
 		ElementInfo eiSB = env.getElementInfo(objref);
 		SymbolicString symbSB = eiSB.getObjectAttr(SymbolicString.class);
 
-		if (symbSB == null) {
+		if (symbSB == null && symbParam == null) {
+			return super.append__Ljava_lang_String_2__Ljava_lang_StringBuilder_2(env, objref, sref);
+		}
+
+		if (symbSB == null && symbParam != null) {
+
 			int field = env.getReferenceField(objref, "value");
 			char[] values = env.getCharArrayObject(field);
 			ArrayList<Expression> symbolicChars = new ArrayList<>();
-			for (char c : values) {
-				ConcolicUtil.Pair newSymbolicChar = ca.getOrCreateSymbolicByte();
+			int count = env.getIntField(objref, "count");
+			for (int i = 0; i < count; i++) {
+				ConcolicUtil.Pair newSymbolicChar = ca.getOrCreateSymbolicChar();
 				Expression valueAssignment = new NumericBooleanExpression(newSymbolicChar.symb,
 																		  NumericComparator.EQ,
-																		  new Constant<Byte>(BuiltinTypes.SINT8,
-																							 (byte) c));
+																		  new Constant<Character>(BuiltinTypes.UINT16,
+																								  values[i]));
 				ca.decision(env.getThreadInfo(), null, 0, valueAssignment);
 				symbolicChars.add(newSymbolicChar.symb);
 			}
-			ConcolicUtil.Pair<Integer> symbolicLength = ca.getOrCreateSymbolicInt8();
-			Expression valueAssignment = new NumericBooleanExpression(symbolicLength.symb,
-																	  NumericComparator.EQ,
-																	  new Constant<Byte>(BuiltinTypes.SINT8,
-																						 (byte) env.getIntField(objref,
-																												"count"
-																						 )));
-			ca.decision(env.getThreadInfo(), null, 0, valueAssignment);
-			symbSB = new SymbolicString(symbolicLength.symb, symbolicChars.toArray(new Expression[0]));
+			Expression constantSize = new Constant(BuiltinTypes.SINT8, count);
+			symbSB = new SymbolicString(constantSize, symbolicChars.toArray(new Expression[0]));
 		}
 
 		int concreteResultRef = super.append__Ljava_lang_String_2__Ljava_lang_StringBuilder_2(env, objref, sref);
@@ -98,13 +97,15 @@ public class JPF_java_lang_StringBuilder extends gov.nasa.jpf.vm.JPF_java_lang_S
 				newChars.add(symbolicChar);
 			}
 			ConcolicUtil.Pair<Integer> newSymbolicLength = ca.getOrCreateSymbolicInt8();
-			Expression left = symbSB.getSymbolicLength().getType().equals(BuiltinTypes.SINT8) ?
-					CastExpression.create(symbSB.getSymbolicLength(), BuiltinTypes.SINT32) :
+			Expression left = symbSB.getSymbolicLength().getType().equals(BuiltinTypes.SINT32) &&
+							  symbSB.getSymbolicLength() instanceof CastExpression ?
+					((CastExpression) symbSB.getSymbolicLength()).getCasted() :
 					symbSB.getSymbolicLength();
-
-			Expression newSymbolicLengthConstraint =
-					new NumericCompound<Integer>(left, NumericOperator.PLUS, symbParam.getSymbolicLength());
-			//ca.decision(env.getThreadInfo(), null, 0, newSymbolicLength.symb);
+			Expression right = symbParam.getSymbolicLength().getType().equals(BuiltinTypes.SINT32) &&
+							   symbParam.getSymbolicLength() instanceof CastExpression ?
+					((CastExpression) symbParam.getSymbolicLength()).getCasted() :
+					symbParam.getSymbolicLength();
+			Expression newSymbolicLengthConstraint = new NumericCompound<Integer>(left, NumericOperator.PLUS, right);
 			symbSB = new SymbolicString(newSymbolicLengthConstraint, newChars.toArray(new Expression[0]));
 			env.addObjectAttr(concreteResultRef, symbSB);
 		}
@@ -229,8 +230,8 @@ public class JPF_java_lang_StringBuilder extends gov.nasa.jpf.vm.JPF_java_lang_S
 			Expression[] symbolicChars = symbolicString.getSymbolicChars();
 			Expression charConstraint = new NumericBooleanExpression(symbolicChars[index],
 																	 NumericComparator.EQ,
-																	 new Constant<Byte>(BuiltinTypes.SINT8,
-																						(byte) character));
+																	 new Constant<Character>(BuiltinTypes.UINT16,
+																							 character));
 			ca.decision(env.getThreadInfo(), null, 0, charConstraint);
 			env.setObjectAttr(objref, symbolicString);
 		}
