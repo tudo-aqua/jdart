@@ -1,2 +1,3 @@
 gov.nasa.jpf.jdart.solvers.selective.SimpleSelectiveSolverProvider
 gov.nasa.jpf.jdart.solvers.functions.FunctionSolverProvider
+gov.nasa.jpf.jdart.solvers.bounded.BoundedSolverProvider
