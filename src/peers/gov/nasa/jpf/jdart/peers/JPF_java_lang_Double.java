@@ -104,7 +104,7 @@ public class JPF_java_lang_Double extends gov.nasa.jpf.vm.JPF_java_lang_Double {
 		}
 
 		ConcolicUtil.Pair<Double> symbolicDouble = ca.getOrCreateSymbolicDouble();
-		SymbolicNumber sn = new SymbolicNumber(symbolicDouble.symb);
+		SymbolicNumber sn = new SymbolicNumber(symbolicDouble.symb, symbolicDouble.conc);
 		sn.isFromString = true;
 		env.setReturnAttribute(sn);
 		return symbolicDouble.conc;

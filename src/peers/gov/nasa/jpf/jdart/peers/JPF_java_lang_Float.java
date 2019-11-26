@@ -44,7 +44,7 @@ public class JPF_java_lang_Float extends gov.nasa.jpf.vm.JPF_java_lang_Float {
 		}
 
 		ConcolicUtil.Pair<Float> symbolicFloat = ca.getOrCreateSymbolicFloat();
-		SymbolicNumber sn = new SymbolicNumber(symbolicFloat.symb);
+		SymbolicNumber sn = new SymbolicNumber(symbolicFloat.symb, symbolicFloat.conc);
 		sn.isFromString = true;
 		env.setReturnAttribute(sn);
 		return symbolicFloat.conc;

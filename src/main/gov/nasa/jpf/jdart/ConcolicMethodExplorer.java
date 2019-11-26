@@ -23,6 +23,7 @@ import gov.nasa.jpf.constraints.api.SolverContext;
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.constraints.api.ValuationEntry;
 import gov.nasa.jpf.constraints.api.Variable;
+import gov.nasa.jpf.constraints.exceptions.ImpreciseRepresentationException;
 import gov.nasa.jpf.constraints.java.ObjectConstraints;
 import gov.nasa.jpf.constraints.parser.ParserUtil;
 import gov.nasa.jpf.constraints.types.BuiltinTypes;
@@ -292,7 +293,7 @@ public class ConcolicMethodExplorer {
 					logger.severe("Could not add constraint to solver: ", ex);
 				}
 			}
-			catch (RecognitionException ex) {
+			catch (RecognitionException | ImpreciseRepresentationException ex) {
 				logger.severe("Could not parse constraint: ", ex);
 			}
 		}

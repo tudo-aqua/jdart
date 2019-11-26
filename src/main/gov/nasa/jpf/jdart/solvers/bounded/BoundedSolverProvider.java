@@ -8,29 +8,34 @@ import java.util.Properties;
 
 public class BoundedSolverProvider implements ConstraintSolverProvider {
 
-    @Override
-    public String[] getNames() {
-        return new String[]{"bounded"};
-    }
+	@Override
+	public String[] getNames() {
+		return new String[]{"bounded"};
+	}
 
-    @Override
-    public ConstraintSolver createSolver(Properties config) {
-        String dp = "dontknow";
-        if (config.containsKey("bounded.dp")) {
-            dp = config.getProperty("bounded.dp");
-        }
+	@Override
+	public ConstraintSolver createSolver(Properties config) {
+		String dp = "dontknow";
+		if (config.containsKey("bounded.dp")) {
+			dp = config.getProperty("bounded.dp");
+		}
 
-        int bound = 200;
-        int iter = 1;
+		int bound = 200;
+		int iter = 1;
 
-        if (config.containsKey("bounded.bound")) {
-            bound = Integer.parseInt(config.getProperty("bounded.eval"));
-        }
-        if (config.containsKey("bounded.iter")) {
-            iter = Integer.parseInt(config.getProperty("bounded.iter"));
-        }
+		BoundedSolver.BoundType type = BoundedSolver.BoundType.linear;
 
-        ConstraintSolver solver = ConstraintSolverFactory.getRootFactory().createSolver(dp, config);
-        return new BoundedSolver(solver, bound, iter);
-    }
+		if (config.containsKey("bounded.bound")) {
+			bound = Integer.parseInt(config.getProperty("bounded.bound"));
+		}
+		if (config.containsKey("bounded.iter")) {
+			iter = Integer.parseInt(config.getProperty("bounded.iter"));
+		}
+		if (config.containsKey("bounded.type") && config.getProperty("bounded.type").equals("fibonacci")) {
+			type = BoundedSolver.BoundType.fibonacci;
+		}
+
+		ConstraintSolver solver = ConstraintSolverFactory.getRootFactory().createSolver(dp, config);
+		return new BoundedSolver(solver, bound, iter, type);
+	}
 }

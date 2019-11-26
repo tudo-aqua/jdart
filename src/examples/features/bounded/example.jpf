@@ -1,8 +1,5 @@
 @include=../../config/jdart.jpf
 
 target=features.bounded.Input
-
 concolic.method.foo=features.bounded.Input.foo()
 
-symbolic.dp=bounded
-bounded.dp=z3

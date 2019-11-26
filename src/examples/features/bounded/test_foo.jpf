@@ -1,7 +1,9 @@
 @include=./example.jpf
 
-concolic.method=main
+concolic.method=foo
 
 
-
-
+symbolic.dp=bounded
+bounded.dp=z3
+bounded.iter=7
+bounded.type=fibonacci

@@ -18,7 +18,7 @@ public class IALOAD extends gov.nasa.jpf.jvm.bytecode.IALOAD {
 	@Override
 	public Instruction execute(ThreadInfo ti) {
 		ConcolicMethodExplorer analysis = ConcolicMethodExplorer.getCurrentAnalysis(ti);
-		if(analysis == null) {
+		if (analysis == null) {
 			return super.execute(ti);
 		}
 
@@ -31,19 +31,13 @@ public class IALOAD extends gov.nasa.jpf.jvm.bytecode.IALOAD {
 			if (length == null) {
 				length = new Constant(BuiltinTypes.SINT32, ei.arrayLength());
 			}
-			Expression constraint = ExpressionUtil.and(
-					new NumericBooleanExpression(
-							new Constant<>(BuiltinTypes.SINT32,0),
-							NumericComparator.LE,
-							idx.symb),
-					new NumericBooleanExpression(
-							idx.symb,
-							NumericComparator.LT,
-							length
-					)
-			);
+			Expression constraint =
+					ExpressionUtil.and(new NumericBooleanExpression(new Constant<>(BuiltinTypes.SINT32, 0),
+																	NumericComparator.LE,
+																	idx.symb),
+									   new NumericBooleanExpression(idx.symb, NumericComparator.LT, length));
 
-			boolean sat = (0 <= idx.conc) && (idx.conc <= ei.arrayLength());
+			boolean sat = (0 <= idx.conc) && (idx.conc < ei.arrayLength());
 			int branchIdx = sat ? 0 : 1;
 			analysis.decision(ti, this, branchIdx, constraint, new Negation(constraint));
 		}

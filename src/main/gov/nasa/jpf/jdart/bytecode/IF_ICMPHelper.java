@@ -23,6 +23,7 @@ import gov.nasa.jpf.constraints.types.BuiltinTypes;
 import gov.nasa.jpf.jdart.ConcolicInstructionFactory;
 import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
 import gov.nasa.jpf.jdart.ConcolicUtil;
+import gov.nasa.jpf.jdart.objects.SymbolicNumber;
 import gov.nasa.jpf.jvm.bytecode.IfInstruction;
 import gov.nasa.jpf.vm.Instruction;
 import gov.nasa.jpf.vm.StackFrame;
@@ -54,8 +55,8 @@ public class IF_ICMPHelper {
 			return null; // null return value means concrete execution
 		}
 
-		Expression<?> rsym = sf.getOperandAttr(0, Expression.class);
-		Expression<?> lsym = sf.getOperandAttr(1, Expression.class);
+		Expression<?> rsym = checkSymbolicAnnotation(sf, 0);
+		Expression<?> lsym = checkSymbolicAnnotation(sf, 1);
 
 
 		ConcolicUtil.Pair<Integer> right = ConcolicUtil.popInt(sf);
@@ -111,5 +112,16 @@ public class IF_ICMPHelper {
 					right.symb + "], symb. result  [" + (branchIdx == 0) + "]");
 		}
 		return (branchIdx == 0) ? instruction.getTarget() : instruction.getNext(ti);
+	}
+
+	private static Expression<?> checkSymbolicAnnotation(StackFrame sf, int offset) {
+		Expression expr = sf.getOperandAttr(offset, Expression.class);
+		if (expr == null) {
+			SymbolicNumber sn = sf.getOperandAttr(offset, SymbolicNumber.class);
+			if (sn != null) {
+				return sn.symbolicNumber;
+			}
+		}
+		return expr;
 	}
 }
