@@ -20,6 +20,7 @@ import gov.nasa.jpf.constraints.expressions.BitvectorExpression;
 import gov.nasa.jpf.constraints.expressions.BitvectorOperator;
 import gov.nasa.jpf.constraints.expressions.CastExpression;
 import gov.nasa.jpf.constraints.types.BuiltinTypes;
+import gov.nasa.jpf.constraints.expressions.Constant;
 import gov.nasa.jpf.jdart.ConcolicInstructionFactory;
 import gov.nasa.jpf.jdart.ConcolicUtil;
 import gov.nasa.jpf.vm.Instruction;
@@ -43,11 +44,35 @@ public class LSHL extends gov.nasa.jpf.jvm.bytecode.LSHL {
     
 	  ConcolicUtil.Pair<Integer> right = ConcolicUtil.popInt(sf);
 	  ConcolicUtil.Pair<Long> left = ConcolicUtil.popLong(sf);
-
-	  BitvectorExpression<Long> symb = BitvectorExpression.create(
-            left.symb, BitvectorOperator.SHIFTL, new CastExpression<>(right.symb, BuiltinTypes.SINT64, NumericCastOperation.TO_SINT64));    
     
-    long conc = left.conc << right.conc;    
+          /*
+           * Java Language Specification paragraph 15.19
+           * Shift Operators
+           *
+           * If the promoted type of the left-hand operand is int, 
+           * only the five lowest-order bits of the right-hand operand 
+           * are used as the shift distance. It is as if the right-hand 
+           * operand were subjected to a bitwise logical AND operator & 
+           * (§15.22.1) with the mask value 0x1f (0b11111). The shift 
+           * distance actually used is therefore always in the range 0 
+           * to 31, inclusive.
+           *
+           * If the promoted type of the left-hand operand is long, then 
+           * only the six lowest-order bits of the right-hand operand are 
+           * used as the shift distance. It is as if the right-hand operand 
+           * were subjected to a bitwise logical AND operator & (§15.22.1) 
+           * with the mask value 0x3f (0b111111). The shift distance actually 
+           * used is therefore always in the range 0 to 63, inclusive.
+           */
+
+    BitvectorExpression<Long> symb = BitvectorExpression.create(
+            left.symb, BitvectorOperator.SHIFTL, BitvectorExpression.create(
+              new CastExpression<>(right.symb, BuiltinTypes.SINT64, NumericCastOperation.TO_SINT64),
+                  BitvectorOperator.AND, Constant.create(BuiltinTypes.SINT64, (long) 0x3f)));
+
+    int rh = right.conc & 0x3f; 
+    
+    long conc = left.conc << rh;      
     
     ConcolicUtil.Pair<Long> result = new ConcolicUtil.Pair<Long>(conc, symb);
     ConcolicUtil.pushLong(result, sf);
