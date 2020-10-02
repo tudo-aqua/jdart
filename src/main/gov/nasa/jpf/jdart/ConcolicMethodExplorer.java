@@ -128,6 +128,8 @@ public class ConcolicMethodExplorer {
 	 */
 	private final TerminationStrategy ts;
 
+	private final ConcolicConfig.StringModel sm;
+
 	public ConcolicMethodExplorer(ConcolicConfig config, String id, MethodInfo mi) {
 		// store method info and config
 		this.methodInfo = mi;
@@ -141,6 +143,7 @@ public class ConcolicMethodExplorer {
 		this.solverCtx = config.getSolver().createContext();
 		this.constraintsTree = new InternalConstraintsTree(solverCtx, anaConf, vals);
 		this.ts = config.getTerminationStrategy();
+		sm = config.getStringModel();
 	}
 
 	public void setExplore(boolean explore) {
@@ -265,9 +268,9 @@ public class ConcolicMethodExplorer {
 		sf.setFrameAttr(RootFrame.getInstance());
 
 		symContext = new SymbolicObjectsContext(ti.getHeap(),
-												anaConf.getSymbolicFieldsExclude(),
-												anaConf.getSymbolicFieldsInclude(),
-												anaConf.getSpecialExclude());
+																						anaConf.getSymbolicFieldsExclude(),
+																						anaConf.getSymbolicFieldsInclude(),
+																						anaConf.getSpecialExclude());
 
 		initializeSymbolicStatic(ti);
 		initializeSymbolicParams(ti, sf);
@@ -402,10 +405,8 @@ public class ConcolicMethodExplorer {
 	}
 
 	@SafeVarargs
-	public final void decision(ThreadInfo ti,
-							   Instruction branchInsn,
-							   int chosenIdx,
-							   Expression<Boolean>... expressions) {
+	public final void decision(ThreadInfo ti, Instruction branchInsn, int chosenIdx,
+														 Expression<Boolean>... expressions) {
 		BranchEffect eff = constraintsTree.decision(branchInsn, chosenIdx, expressions);
 		switch (eff) {
 			case INCONCLUSIVE:
@@ -499,6 +500,15 @@ public class ConcolicMethodExplorer {
 		return new Pair<>(val, var);
 	}
 
+	public Pair<String> getOrCreateSymbolicString() {
+		Variable var = new Variable(BuiltinTypes.STRING, "_string" + count++);
+		String val = ((String) currValuation.getValue(var));
+		if (val == null) {
+			val = "";
+		}
+		return new Pair<>(val, var);
+	}
+
 	public Pair<Boolean> getOrCreateSymbolicBoolean() {
 		Variable var = new Variable(BuiltinTypes.BOOL, "_bool" + count++);
 		Boolean val = (Boolean) currValuation.getValue(var);
@@ -551,6 +561,10 @@ public class ConcolicMethodExplorer {
 			val = 0l;
 		}
 		return new Pair<>(val, var);
+	}
+
+	public ConcolicConfig.StringModel getStringModel() {
+		return sm;
 	}
 
 	// LEGACY API
