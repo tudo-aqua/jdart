@@ -206,7 +206,7 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 
 	@MJI
 	@SymbolicPeer
-	public static int valueOf__D__Ljava_lang_String_2(MJIEnv env, int objRef, double value) {
+	public int valueOf__D__Ljava_lang_String_2(MJIEnv env, int objRef, double value) {
 		ConcolicConfig.StringModel sm = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo()).getStringModel();
 		switch (sm) {
 			case BVModel:
