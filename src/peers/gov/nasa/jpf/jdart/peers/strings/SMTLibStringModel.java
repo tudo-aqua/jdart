@@ -41,6 +41,8 @@ import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.MJIEnv;
 import gov.nasa.jpf.vm.ThreadInfo;
 
+import java.math.BigInteger;
+
 
 public class SMTLibStringModel {
 	private final JPF_java_lang_String peer;
@@ -120,14 +122,12 @@ public class SMTLibStringModel {
 				throw new UnsupportedOperationException("We need to compute a valueSet in this case");
 			}
 
-			StringCompoundExpression charAt = StringCompoundExpression.createAt(symb.strVar, symbIndex);
-			if (symb.symbolicValue instanceof StringCompoundExpression) {
-				charAt = StringCompoundExpression.createAt(symb.symbolicValue, symbIndex);
-			}
+			StringCompoundExpression charAt = StringCompoundExpression.createAt(symb.symbolicValue, symbIndex);
 			Variable<String> newStrVar = (Variable<String>) analysis.getOrCreateSymbolicString().symb;
 			StringBooleanExpression assignment = StringBooleanExpression.createEquals(newStrVar, charAt);
+			char res = peer.super_charAt__I__C(env, objRef, index);
 			env.setReturnAttribute(new SymbolicSMTString(newStrVar, assignment));
-			return peer.charAt__I__C(env, objRef, index);
+			return res;
 		}
 		catch (ArrayIndexOutOfBoundsException e) {
 			env.throwException(ArrayIndexOutOfBoundsException.class.getName(), e.getMessage());
@@ -242,7 +242,76 @@ public class SMTLibStringModel {
 																													 int otherString,
 																													 int ooffset,
 																													 int len) {
-		throw new UnsupportedOperationException();
+		Object[] argAttrs = env.getArgAttributes();
+		//DISCLAIMER: We do not support symbolic toffset, ooffset, len, ignoreCase at the moment.
+		//ignore
+		if (argAttrs != null) {
+			//Return dont know in this case.
+			env.throwException("error.Assume");
+			return false;
+		}
+
+		String self = env.getStringObject(objref);
+		String other = env.getStringObject(otherString);
+
+		SymbolicSMTString symbolicSelf = env.getObjectAttr(objref, SymbolicSMTString.class);
+		SymbolicSMTString symbolicOther = env.getObjectAttr(otherString, SymbolicSMTString.class);
+		boolean concreteResult = self.regionMatches(ignoreCase, toffset, other, ooffset, len);
+		if (symbolicSelf == null && symbolicOther == null) {
+			//No symbolic parts, so we do not need to update anything in the symbolic model.
+			return concreteResult;
+		}
+		if (symbolicSelf == null) {
+			symbolicSelf = new SymbolicSMTString(null, Constant.create(BuiltinTypes.STRING, self));
+		}
+		if (symbolicOther == null) {
+			symbolicOther = new SymbolicSMTString(null, Constant.create(BuiltinTypes.STRING, other));
+		}
+
+		boolean boundsCheck = evaluateBoundsRegionMatches(ooffset,
+																											toffset,
+																											len,
+																											other.length(),
+																											self.length(),
+																											StringIntegerExpression.createLength(symbolicOther.symbolicValue),
+																											StringIntegerExpression.createLength((symbolicSelf.symbolicValue)),
+																											env.getThreadInfo());
+		if (!boundsCheck) {
+			return false;
+		}
+		if (symbolicSelf != null && symbolicOther == null) {
+			return regionMatchConcreteSymbolicMix(symbolicSelf,
+																						other,
+																						toffset,
+																						ooffset,
+																						len,
+																						ignoreCase,
+																						concreteResult,
+																						env.getThreadInfo());
+		}
+		if (symbolicOther != null && symbolicSelf == null) {
+			return regionMatchConcreteSymbolicMix(symbolicOther,
+																						self,
+																						toffset,
+																						ooffset,
+																						len,
+																						ignoreCase,
+																						concreteResult,
+																						env.getThreadInfo());
+		}
+//		if (toffset + len >= symbolicSelf.getSymbolicChars().length ||
+//				ooffset + len >= symbolicOther.getSymbolicChars().length) {
+//			return false;
+//		}
+		return regionMatchBotchSymbolic(symbolicSelf,
+																		symbolicOther,
+																		toffset,
+																		ooffset,
+																		len,
+																		ignoreCase,
+																		concreteResult,
+																		env.getThreadInfo());
+
 	}
 
 	@MJI
@@ -338,15 +407,32 @@ public class SMTLibStringModel {
 	@MJI
 	public int substring__I__Ljava_lang_String_2(MJIEnv env, int objRef, int beginIndex) {
 		SymbolicSMTString symbolicString = env.getObjectAttr(objRef, SymbolicSMTString.class);
-		int res = peer.super_substring__I__Ljava_lang_String_2(env, objRef, beginIndex);
-		if (env.getArgAttributes() != null && (env.getArgAttributes()[1] != null || env.getArgAttributes()[2] != null)) {
+		if (env.getArgAttributes() != null && (env.getArgAttributes()[1] != null)) {
 			System.out.println("JPF_java_lang_String.substring__I__Ljava_lang_String_2");
 			System.out.println("Cannot deal with symbolic values in args");
-			env.throwException("error.Assume");
+			env.throwException("errors.Assume");
 			return -1;
 		}
+		int res = -1;
 		if (symbolicString != null) {
-			Constant cBegin = Constant.create(BuiltinTypes.SINT32, beginIndex);
+			String concreteString = env.getStringObject(objRef);
+			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+
+			Constant cBegin = Constant.create(BuiltinTypes.INTEGER, BigInteger.valueOf(beginIndex));
+
+			Expression boundCheck = NumericBooleanExpression.create(cBegin,
+																															NumericComparator.LT,
+																															StringIntegerExpression.createLength(symbolicString.symbolicValue));
+			ca.decision(env.getThreadInfo(),
+									null,
+									beginIndex < concreteString.length() ? 0 : 1,
+									boundCheck,
+									Negation.create(boundCheck));
+			if (!(beginIndex < concreteString.length())) {
+				env.throwException("java.lang.IndexOutOfBoundsException");
+				return -1;
+			}
+
 			NumericCompound upperBound =
 					NumericCompound.create(StringIntegerExpression.createLength(symbolicString.symbolicValue),
 																 NumericOperator.MINUS,
@@ -354,10 +440,14 @@ public class SMTLibStringModel {
 			StringCompoundExpression expr =
 					StringCompoundExpression.createSubstring(symbolicString.symbolicValue, cBegin, upperBound);
 
-			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+
 			ConcolicUtil.Pair<String> varName = ca.getOrCreateSymbolicString();
 			SymbolicSMTString symbolicValue = new SymbolicSMTString((Variable<String>) varName.symb, expr);
+
+			res = env.newString(concreteString.substring(beginIndex));
 			env.addObjectAttr(res, symbolicValue);
+		} else {
+			res = peer.super_substring__I__Ljava_lang_String_2(env, objRef, beginIndex);
 		}
 		return res;
 	}
@@ -366,23 +456,47 @@ public class SMTLibStringModel {
 	@SymbolicPeer
 	public int substring__II__Ljava_lang_String_2(MJIEnv env, int objRef, int beginIndex, int endIndex) {
 		SymbolicSMTString symbolicString = env.getObjectAttr(objRef, SymbolicSMTString.class);
-		int res = peer.super_substring__II__Ljava_lang_String_2(env, objRef, beginIndex, endIndex);
+
+		String concreteString = env.getStringObject(objRef);
+
 		if (env.getArgAttributes() != null && (env.getArgAttributes()[1] != null || env.getArgAttributes()[2] != null)) {
 			System.out.println("JPF_java_lang_String.substring__II__Ljava_lang_String_2");
 			System.out.println("Cannot deal with symbolic values in args");
 			env.throwException("error.Assume");
 			return -1;
 		}
+
+		if (beginIndex < 0) {
+			env.throwException("java.lang.IndexOutOfBoundsException");
+			return -1;
+		}
+		int res = -1;
 		if (symbolicString != null) {
+			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+
 			Constant cBegin = Constant.create(BuiltinTypes.SINT32, beginIndex);
-			Constant cEnd = Constant.create(BuiltinTypes.SINT32, endIndex);
+			Constant cEnd = Constant.create(BuiltinTypes.INTEGER, BigInteger.valueOf(endIndex));
+
+			Expression inBound = NumericBooleanExpression.create(cEnd,
+																													 NumericComparator.GE,
+																													 StringIntegerExpression.createLength(symbolicString.symbolicValue));
+
+
+			if (endIndex >= concreteString.length()) {
+				ca.decision(env.getThreadInfo(), null, 0, inBound, Negation.create(inBound));
+				env.throwException("java.lang.IndexOutOfBoundsException");
+				return -1;
+			}
+			ca.decision(env.getThreadInfo(), null, 1, inBound, Negation.create(inBound));
+			res = peer.super_substring__II__Ljava_lang_String_2(env, objRef, beginIndex, endIndex);
+
 			StringCompoundExpression expr =
 					StringCompoundExpression.createSubstring(symbolicString.symbolicValue, cBegin, cEnd);
-
-			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
 			ConcolicUtil.Pair<String> varName = ca.getOrCreateSymbolicString();
 			SymbolicSMTString symbolicValue = new SymbolicSMTString((Variable<String>) varName.symb, expr);
 			env.addObjectAttr(res, symbolicValue);
+		} else {
+			res = peer.super_substring__II__Ljava_lang_String_2(env, objRef, beginIndex, endIndex);
 		}
 		return res;
 	}
@@ -424,5 +538,100 @@ public class SMTLibStringModel {
 			}
 		}
 		return concreteRes;
+	}
+
+	private static boolean evaluateBoundsRegionMatches(int ooffset,
+																										 int toffset,
+																										 int len,
+																										 int olen,
+																										 int tlen,
+																										 Expression oSymLen,
+																										 Expression tSymLen,
+																										 ThreadInfo ti) {
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		boolean upperOBound = (ooffset + len) > olen;
+		Expression upperOBoundE = new NumericBooleanExpression(oSymLen,
+																													 NumericComparator.LT,
+																													 new Constant<Integer>(BuiltinTypes.SINT32,
+																																								 (ooffset + len)));
+
+		boolean lowerOBound = (ooffset + len) < 0;
+
+		boolean lowerTBound = (toffset + len) < 0;
+
+		boolean upperTBound = (toffset + len) > tlen;
+		Expression upperTBoundE = new NumericBooleanExpression(tSymLen,
+																													 NumericComparator.LT,
+																													 new Constant<Integer>(BuiltinTypes.SINT32,
+																																								 (toffset + len)));
+		Expression check0 = ExpressionUtil.and(upperOBoundE, upperTBoundE);
+		Expression check1 = ExpressionUtil.and(upperOBoundE, new Negation(upperTBoundE));
+		Expression check2 = ExpressionUtil.and(new Negation(upperOBoundE), upperTBoundE);
+		Expression check3 = ExpressionUtil.and(new Negation(upperOBoundE), new Negation(upperTBoundE));
+		int branchIdx = -1;
+		if (upperOBound) {
+			if (upperTBound) {
+				branchIdx = 0;
+
+			} else {
+				branchIdx = 1;
+			}
+		} else {
+			if (upperTBound) {
+				branchIdx = 2;
+			} else {
+				branchIdx = 3;
+			}
+		}
+		ca.decision(ti, null, branchIdx, check0, check1, check2, check3);
+		return !(upperOBound || lowerOBound || lowerTBound || upperTBound);
+	}
+
+	private static boolean regionMatchBotchSymbolic(SymbolicSMTString self,
+																									SymbolicSMTString other,
+																									int soffset,
+																									int ooffset,
+																									int len,
+																									boolean ignoreCase,
+																									boolean concreteResult,
+																									ThreadInfo ti) {
+
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		Expression cSOff = Constant.create(BuiltinTypes.SINT32, soffset);
+		Expression cOOff = Constant.create(BuiltinTypes.SINT32, ooffset);
+		Expression cLen = Constant.create(BuiltinTypes.SINT32, len);
+		//FIXME: We don't integrate ignoreCase currently into the analysis. Think about the possible effects.
+//		if (ignoreCase) {
+//			ti.getMJIEnv().throwException("errors.Assume", "Cannot Model ignore Case yet");
+//		}
+		Expression symbolicSubstring = StringCompoundExpression.createSubstring(self.symbolicValue, cSOff, cLen);
+		Expression otherSubstring = StringCompoundExpression.createSubstring(other.symbolicValue, cSOff, cLen);
+		StringBooleanExpression equalStrings = StringBooleanExpression.createEquals(symbolicSubstring, otherSubstring);
+		int branchIndex = concreteResult ? 0 : 1;
+		ca.decision(ti, null, branchIndex, equalStrings, new Negation(equalStrings));
+		return concreteResult;
+	}
+
+	private static boolean regionMatchConcreteSymbolicMix(SymbolicSMTString symbolic,
+																												String other,
+																												int soffset,
+																												int ooffset,
+																												int len,
+																												boolean ignoreCase,
+																												boolean concreteResult,
+																												ThreadInfo ti) {
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		Expression cSOff = Constant.create(BuiltinTypes.SINT32, soffset);
+		Expression cOOff = Constant.create(BuiltinTypes.SINT32, ooffset);
+		Expression cLen = Constant.create(BuiltinTypes.SINT32, len);
+		if (ignoreCase) {
+			ti.getMJIEnv().throwException("errors.Assume", "Cannot Model ignore Case yet");
+		}
+		Expression symbolicSubstring = StringCompoundExpression.createSubstring(symbolic.symbolicValue, cSOff, cLen);
+		Constant otherSubstring = Constant.create(BuiltinTypes.STRING, other.substring(ooffset, len));
+		StringBooleanExpression equalStrings = StringBooleanExpression.createEquals(symbolicSubstring, otherSubstring);
+		int branchIndex = concreteResult ? 0 : 1;
+		ca.decision(ti, null, branchIndex, equalStrings, new Negation(equalStrings));
+		return concreteResult;
 	}
 }

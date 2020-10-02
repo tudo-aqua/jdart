@@ -19,11 +19,13 @@ import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.expressions.Negation;
 import gov.nasa.jpf.constraints.expressions.NumericBooleanExpression;
 import gov.nasa.jpf.constraints.expressions.NumericComparator;
+import gov.nasa.jpf.constraints.expressions.StringBooleanExpression;
 import gov.nasa.jpf.constraints.types.BuiltinTypes;
 import gov.nasa.jpf.jdart.ConcolicInstructionFactory;
 import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
 import gov.nasa.jpf.jdart.ConcolicUtil;
 import gov.nasa.jpf.jdart.objects.SymbolicNumber;
+import gov.nasa.jpf.jdart.objects.SymbolicSMTString;
 import gov.nasa.jpf.jvm.bytecode.IfInstruction;
 import gov.nasa.jpf.vm.Instruction;
 import gov.nasa.jpf.vm.StackFrame;
@@ -74,8 +76,8 @@ public class IF_ICMPHelper {
 		if (analysis.needsDecisions()) {
 			constraints = new Expression[2];
 			if ((cmp == NumericComparator.EQ || cmp == NumericComparator.NE) &&
-				((lsym == null || lsym.getType().equals(BuiltinTypes.BOOL)) &&
-				 (rsym == null || rsym.getType().equals(BuiltinTypes.BOOL)))) {
+					((lsym == null || lsym.getType().equals(BuiltinTypes.BOOL)) &&
+					 (rsym == null || rsym.getType().equals(BuiltinTypes.BOOL)))) {
 				if (lsym != null && rsym != null) { // symbolic / symbolic
 					constraints[0] = NumericBooleanExpression.create(lsym, cmp, rsym);
 					constraints[1] = NumericBooleanExpression.create(lsym, cmp.not(), rsym);
@@ -95,6 +97,17 @@ public class IF_ICMPHelper {
 					int neg = (cmpVal ^ (cmp == NumericComparator.EQ)) ? 0 : 1;
 					constraints[neg] = new Negation(constraints[neg]);
 				}
+			} else if (lsym != null && lsym.getType().equals(BuiltinTypes.STRING) ||
+								 rsym != null && rsym.getType().equals(BuiltinTypes.STRING)) {
+				if (cmp.equals(NumericComparator.NE)) {
+					constraints[1] = StringBooleanExpression.createEquals(lsym, rsym);
+					constraints[0] = Negation.create(constraints[1]);
+				} else if (cmp.equals(NumericComparator.EQ)) {
+					constraints[0] = StringBooleanExpression.createEquals(lsym, rsym);
+					constraints[1] = Negation.create(constraints[0]);
+				} else {
+					ti.getMJIEnv().throwException("error.Assume", "Not implemented yet");
+				}
 			} else {
 				constraints[0] = NumericBooleanExpression.create(left.symb, cmp, right.symb);
 				constraints[1] = NumericBooleanExpression.create(left.symb, cmp.not(), right.symb);
@@ -108,8 +121,8 @@ public class IF_ICMPHelper {
 
 		if (ConcolicInstructionFactory.DEBUG) {
 			ConcolicInstructionFactory.logger.finest(
-					"Execute IF_ICMP: " + left.conc + " [" + left.symb + "] " + cmp + " " + right.conc + " [" +
-					right.symb + "], symb. result  [" + (branchIdx == 0) + "]");
+					"Execute IF_ICMP: " + left.conc + " [" + left.symb + "] " + cmp + " " + right.conc + " [" + right.symb +
+					"], symb. result  [" + (branchIdx == 0) + "]");
 		}
 		return (branchIdx == 0) ? instruction.getTarget() : instruction.getNext(ti);
 	}
@@ -120,6 +133,11 @@ public class IF_ICMPHelper {
 			SymbolicNumber sn = sf.getOperandAttr(offset, SymbolicNumber.class);
 			if (sn != null) {
 				return sn.symbolicNumber;
+			} else {
+				SymbolicSMTString symbolic = sf.getOperandAttr(offset, SymbolicSMTString.class);
+				if (symbolic != null) {
+					return symbolic.symbolicValue;
+				}
 			}
 		}
 		return expr;

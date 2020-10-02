@@ -295,7 +295,7 @@ public class BitVectorStringModel {
 		//ignore
 		if (argAttrs != null) {
 			//Return dont know in this case.
-			ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo()).completePathDontKnow(env.getThreadInfo());
+			env.throwException("error.Assume");
 			return false;
 		}
 
