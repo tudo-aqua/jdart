@@ -512,12 +512,13 @@ public class SMTLibStringModel {
 		}
 		if (symbolicString != null) {
 			int[] fields = env.getReferenceArrayObject(concreteRes);
+			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
 			if (fields.length != 0) {
 				SymbolicSMTString[] symbolicFields = new SymbolicSMTString[fields.length];
 
 				String param = env.getStringObject(rString0);
 				Constant cParam = Constant.create(BuiltinTypes.STRING, param);
-				ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+
 				int count = 0;
 				for (int ref : fields) {
 					ConcolicUtil.Pair<String> newStringVar = ca.getOrCreateSymbolicString();
@@ -536,6 +537,7 @@ public class SMTLibStringModel {
 				concat = StringBooleanExpression.createEquals(symbolicString.symbolicValue, concat);
 				ca.decision(env.getThreadInfo(), null, 0, concat);
 			}
+			env.setObjectAttr(concreteRes, StringIntegerExpression.createLength(symbolicString.symbolicValue));
 		}
 		return concreteRes;
 	}
