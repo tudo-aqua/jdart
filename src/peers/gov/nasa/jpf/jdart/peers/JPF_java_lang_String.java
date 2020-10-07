@@ -219,6 +219,21 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 	}
 
 	@MJI
+	@SymbolicPeer
+	public int valueOf__C__Ljava_lang_String_2(MJIEnv env, int objRef, char value) {
+		ConcolicConfig.StringModel sm = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo()).getStringModel();
+		switch (sm) {
+			case BVModel:
+				return BitVectorStringModel.local_valueOf__C__Ljava_lang_String_2(env, objRef, value);
+			case SMTLibModel:
+				return SMTLibStringModel.local_valueOf__C__Ljava_lang_String_2(env, objRef, value);
+			default:
+				throw new UnsupportedOperationException(errorMessage);
+		}
+	}
+
+
+	@MJI
 	@Override
 	public int substring__I__Ljava_lang_String_2(MJIEnv env, int objRef, int beginIndex) {
 		ConcolicConfig.StringModel sm = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo()).getStringModel();

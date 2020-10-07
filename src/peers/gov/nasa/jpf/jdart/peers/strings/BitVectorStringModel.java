@@ -54,6 +54,7 @@ public class BitVectorStringModel {
 		this.peer = peer;
 	}
 
+
 	@MJI
 	@SymbolicPeer
 	public int init___3BII__Ljava_lang_String_2(MJIEnv env, int objRef, int bytesRef, int offset, int length) {
@@ -607,6 +608,29 @@ public class BitVectorStringModel {
 
 	@MJI
 	public static int local_valueOf__D__Ljava_lang_String_2(MJIEnv env, int objRef, double value) {
+		Object[] attrs = env.getArgAttributes();
+		String res = String.valueOf(value);
+		if (attrs != null) {
+			for (Object o : attrs) {
+				if (o instanceof SymbolicNumber) {
+					SymbolicNumber sn = (SymbolicNumber) o;
+					ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+					ConcolicUtil.Pair<Integer> length = ca.getOrCreateSymbolicInt8();
+					Expression[] symbolicChars = new Expression[res.length()];
+					for (int i = 0; i < res.length(); i++) {
+						symbolicChars[i] = ca.getOrCreateSymbolicByte().symb;
+					}
+					SymbolicBVString symbolicRes = new SymbolicBVString(length.symb, symbolicChars);
+					symbolicRes.setIsFromNumber(true);
+					symbolicRes.setSymbolicNumber(sn);
+					env.setReturnAttribute(symbolicRes);
+				}
+			}
+		}
+		return env.newString(res);
+	}
+
+	public static int local_valueOf__C__Ljava_lang_String_2(MJIEnv env, int objRef, char value) {
 		Object[] attrs = env.getArgAttributes();
 		String res = String.valueOf(value);
 		if (attrs != null) {

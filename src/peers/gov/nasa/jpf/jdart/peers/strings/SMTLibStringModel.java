@@ -19,6 +19,7 @@ package gov.nasa.jpf.jdart.peers.strings;
 import gov.nasa.jpf.annotation.MJI;
 import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.Variable;
+import gov.nasa.jpf.constraints.expressions.CastExpression;
 import gov.nasa.jpf.constraints.expressions.Constant;
 import gov.nasa.jpf.constraints.expressions.Negation;
 import gov.nasa.jpf.constraints.expressions.NumericBooleanExpression;
@@ -101,7 +102,9 @@ public class SMTLibStringModel {
 		if (analysis == null || (symb == null && symbIndex == null)) {
 			return peer.super_charAt__I__C(env, objRef, index);
 		}
-		Expression length = (symb != null) ? StringIntegerExpression.createLength(symb.strVar) : null;
+		Expression length = (symb != null) ?
+				CastExpression.create(StringIntegerExpression.createLength(symb.strVar), BuiltinTypes.SINT32) :
+				null;
 		if (length == null) {
 			length = new Constant(BuiltinTypes.SINT32, eiThis.length());
 		}
@@ -125,8 +128,9 @@ public class SMTLibStringModel {
 			StringCompoundExpression charAt = StringCompoundExpression.createAt(symb.symbolicValue, symbIndex);
 			Variable<String> newStrVar = (Variable<String>) analysis.getOrCreateSymbolicString().symb;
 			StringBooleanExpression assignment = StringBooleanExpression.createEquals(newStrVar, charAt);
+			analysis.decision(ti, null, 0, assignment);
 			char res = peer.super_charAt__I__C(env, objRef, index);
-			env.setReturnAttribute(new SymbolicSMTString(newStrVar, assignment));
+			env.setReturnAttribute(new SymbolicSMTString(newStrVar, newStrVar));
 			return res;
 		}
 		catch (ArrayIndexOutOfBoundsException e) {
@@ -403,6 +407,29 @@ public class SMTLibStringModel {
 		return env.newString(res);
 	}
 
+	public static int local_valueOf__C__Ljava_lang_String_2(MJIEnv env, int objRef, char value) {
+		Object[] attrs = env.getArgAttributes();
+		String res = String.valueOf(value);
+		int resId = env.newString(res);
+		if (attrs != null) {
+			for (Object o : attrs) {
+				if (o instanceof SymbolicNumber) {
+					ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+					ConcolicUtil.Pair<String> expr = ca.getOrCreateSymbolicString();
+					StringCompoundExpression fromInt =
+							StringCompoundExpression.createToString(((SymbolicNumber) o).symbolicNumber);
+					SymbolicSMTString symbolicRes = new SymbolicSMTString((Variable<String>) expr.symb, fromInt);
+					symbolicRes.setIsFromNumber(true);
+					symbolicRes.setSymbolicNumber((SymbolicNumber) o);
+					env.setObjectAttr(resId, symbolicRes);
+				} else if (o instanceof SymbolicSMTString) {
+					env.setObjectAttr(resId, o);
+				}
+			}
+		}
+		return resId;
+	}
+
 
 	@MJI
 	public int substring__I__Ljava_lang_String_2(MJIEnv env, int objRef, int beginIndex) {
@@ -511,33 +538,44 @@ public class SMTLibStringModel {
 			throw new UnsupportedOperationException("Cannot deal with symbolic parameter in String.split");
 		}
 		if (symbolicString != null) {
-			int[] fields = env.getReferenceArrayObject(concreteRes);
-			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
-			if (fields.length != 0) {
-				SymbolicSMTString[] symbolicFields = new SymbolicSMTString[fields.length];
-
-				String param = env.getStringObject(rString0);
-				Constant cParam = Constant.create(BuiltinTypes.STRING, param);
-
-				int count = 0;
-				for (int ref : fields) {
-					ConcolicUtil.Pair<String> newStringVar = ca.getOrCreateSymbolicString();
-					Expression value = Negation.create(StringBooleanExpression.createContains(newStringVar.symb, cParam));
-					ca.decision(env.getThreadInfo(), null, 0, value);
-					SymbolicSMTString field = new SymbolicSMTString((Variable<String>) newStringVar.symb, newStringVar.symb);
-					env.addObjectAttr(ref, field);
-					symbolicFields[count] = field;
-					++count;
-				}
-				Expression concat = symbolicFields[0].symbolicValue;
-				for (int i = 1; i < symbolicFields.length; i++) {
-					concat = StringCompoundExpression.createConcat(concat, cParam);
-					concat = StringCompoundExpression.createConcat(concat, symbolicFields[i].symbolicValue);
-				}
-				concat = StringBooleanExpression.createEquals(symbolicString.symbolicValue, concat);
-				ca.decision(env.getThreadInfo(), null, 0, concat);
-			}
-			env.setObjectAttr(concreteRes, StringIntegerExpression.createLength(symbolicString.symbolicValue));
+			throw new UnsupportedOperationException("Cannot deal with symbolic array split");
+//			int[] fields = env.getReferenceArrayObject(concreteRes);
+//			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+//			if (fields.length != 0) {
+//				SymbolicSMTString[] symbolicFields = new SymbolicSMTString[fields.length];
+//
+//				String param = env.getStringObject(rString0);
+//				Constant cParam = Constant.create(BuiltinTypes.STRING, param);
+//
+//				int count = 0;
+//				for (int ref : fields) {
+//					ConcolicUtil.Pair<String> newStringVar = ca.getOrCreateSymbolicString();
+//					Expression value = Negation.create(StringBooleanExpression.createContains(newStringVar.symb, cParam));
+//					ca.decision(env.getThreadInfo(), null, 0, value);
+//					SymbolicSMTString field = new SymbolicSMTString((Variable<String>) newStringVar.symb, newStringVar.symb);
+//					env.addObjectAttr(ref, field);
+//					symbolicFields[count] = field;
+//					++count;
+//				}
+//				Expression concat = symbolicFields[0].symbolicValue;
+//				for (int i = 1; i < symbolicFields.length; i++) {
+//					concat = StringCompoundExpression.createConcat(concat, cParam);
+//					concat = StringCompoundExpression.createConcat(concat, symbolicFields[i].symbolicValue);
+//				}
+//				concat = StringBooleanExpression.createEquals(symbolicString.symbolicValue, concat);
+//				ca.decision(env.getThreadInfo(), null, 0, concat);
+//			}
+//			ConcolicUtil.Pair<Integer> newArrayLength = ca.getOrCreateSymbolicInt();
+//			ca.decision(env.getThreadInfo(),
+//									null,
+//									0,
+//									(NumericBooleanExpression.create(newArrayLength.symb,
+//																									 NumericComparator.LT,
+//																									 CastExpression.create(StringIntegerExpression.createLength(
+//																											 symbolicString.symbolicValue), BuiltinTypes.SINT32))));
+//
+//
+//			env.setObjectAttr(concreteRes, newArrayLength.symb);
 		}
 		return concreteRes;
 	}
@@ -554,8 +592,7 @@ public class SMTLibStringModel {
 		boolean upperOBound = (ooffset + len) > olen;
 		Expression upperOBoundE = new NumericBooleanExpression(oSymLen,
 																													 NumericComparator.LT,
-																													 new Constant<Integer>(BuiltinTypes.SINT32,
-																																								 (ooffset + len)));
+																													 new Constant(BuiltinTypes.INTEGER, (ooffset + len)));
 
 		boolean lowerOBound = (ooffset + len) < 0;
 
@@ -564,8 +601,7 @@ public class SMTLibStringModel {
 		boolean upperTBound = (toffset + len) > tlen;
 		Expression upperTBoundE = new NumericBooleanExpression(tSymLen,
 																													 NumericComparator.LT,
-																													 new Constant<Integer>(BuiltinTypes.SINT32,
-																																								 (toffset + len)));
+																													 new Constant(BuiltinTypes.INTEGER, (toffset + len)));
 		Expression check0 = ExpressionUtil.and(upperOBoundE, upperTBoundE);
 		Expression check1 = ExpressionUtil.and(upperOBoundE, new Negation(upperTBoundE));
 		Expression check2 = ExpressionUtil.and(new Negation(upperOBoundE), upperTBoundE);
@@ -599,9 +635,9 @@ public class SMTLibStringModel {
 																									ThreadInfo ti) {
 
 		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
-		Expression cSOff = Constant.create(BuiltinTypes.SINT32, soffset);
-		Expression cOOff = Constant.create(BuiltinTypes.SINT32, ooffset);
-		Expression cLen = Constant.create(BuiltinTypes.SINT32, len);
+		Expression cSOff = Constant.create(BuiltinTypes.INTEGER, BigInteger.valueOf(soffset));
+		Expression cOOff = Constant.create(BuiltinTypes.INTEGER, BigInteger.valueOf(ooffset));
+		Expression cLen = Constant.create(BuiltinTypes.INTEGER, BigInteger.valueOf(len));
 		//FIXME: We don't integrate ignoreCase currently into the analysis. Think about the possible effects.
 //		if (ignoreCase) {
 //			ti.getMJIEnv().throwException("errors.Assume", "Cannot Model ignore Case yet");
@@ -623,9 +659,9 @@ public class SMTLibStringModel {
 																												boolean concreteResult,
 																												ThreadInfo ti) {
 		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
-		Expression cSOff = Constant.create(BuiltinTypes.SINT32, soffset);
-		Expression cOOff = Constant.create(BuiltinTypes.SINT32, ooffset);
-		Expression cLen = Constant.create(BuiltinTypes.SINT32, len);
+		Expression cSOff = Constant.create(BuiltinTypes.INTEGER, BigInteger.valueOf(soffset));
+		Expression cOOff = Constant.create(BuiltinTypes.INTEGER, BigInteger.valueOf(ooffset));
+		Expression cLen = Constant.create(BuiltinTypes.INTEGER, BigInteger.valueOf(len));
 		if (ignoreCase) {
 			ti.getMJIEnv().throwException("errors.Assume", "Cannot Model ignore Case yet");
 		}
