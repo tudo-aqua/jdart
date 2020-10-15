@@ -52,6 +52,33 @@ public class SMTLibStringModel {
 		this.peer = peer;
 	}
 
+	public static boolean startsWith__Ljava_lang_String_2__Z(MJIEnv env, int objRef, int prefixRef) {
+		String concreteSelf = env.getStringObject(objRef);
+		String concretePrefix = env.getStringObject(prefixRef);
+
+		ConcolicMethodExplorer analysis = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
+		SymbolicSMTString symbolicSelf = env.getObjectAttr(objRef, SymbolicSMTString.class);
+		SymbolicSMTString symbolicPrefix = env.getObjectAttr(prefixRef, SymbolicSMTString.class);
+		boolean concreteRes = concreteSelf.startsWith(concretePrefix);
+		if (analysis != null) {
+			if (symbolicSelf == null) {
+				ConcolicUtil.Pair<String> newSelf = analysis.getOrCreateSymbolicString();
+				symbolicSelf =
+						new SymbolicSMTString((Variable<String>) newSelf.symb, Constant.create(BuiltinTypes.STRING, concreteSelf));
+			}
+			if (symbolicPrefix == null) {
+				ConcolicUtil.Pair<String> newPrefix = analysis.getOrCreateSymbolicString();
+				symbolicPrefix = new SymbolicSMTString((Variable<String>) newPrefix.symb,
+																							 Constant.create(BuiltinTypes.STRING, concretePrefix));
+			}
+			Expression startWith =
+					StringBooleanExpression.createPrefixOf(symbolicPrefix.symbolicValue, symbolicSelf.symbolicValue);
+			env.setReturnAttribute(startWith);
+		}
+		return concreteRes;
+
+	}
+
 	@MJI
 	@SymbolicPeer
 	public int init___3BII__Ljava_lang_String_2(MJIEnv env, int objRef, int bytesRef, int offset, int length) {

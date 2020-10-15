@@ -54,6 +54,11 @@ public class BitVectorStringModel {
 		this.peer = peer;
 	}
 
+	public static boolean startsWith__Ljava_lang_String_2__Z(MJIEnv env, int objRef, int prefixRef) {
+		return false;
+
+	}
+
 
 	@MJI
 	@SymbolicPeer

@@ -184,7 +184,7 @@ public class JPF_java_util_regex_Matcher extends gov.nasa.jpf.vm.JPF_java_util_r
 		SymbolicMatcher sm = env.getObjectAttr(objref, SymbolicMatcher.class);
 		if (sm != null) {
 			if (!sm.hasSymbolicGroup(i)) {
-				throw new UnsupportedOperationException("This mustnot happen");
+				throw new UnsupportedOperationException("This must not happen");
 			} else {
 				env.setObjectAttr(newStringId, sm.getSymbolicGroup(i));
 			}

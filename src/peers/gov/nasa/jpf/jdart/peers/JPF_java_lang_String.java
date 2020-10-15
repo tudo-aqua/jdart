@@ -232,6 +232,18 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 		}
 	}
 
+	@MJI
+	public boolean startsWith__Ljava_lang_String_2__Z(MJIEnv env, int objRef, int prefixRef) {
+		ConcolicConfig.StringModel sm = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo()).getStringModel();
+		switch (sm) {
+			case BVModel:
+				return BitVectorStringModel.startsWith__Ljava_lang_String_2__Z(env, objRef, prefixRef);
+			case SMTLibModel:
+				return SMTLibStringModel.startsWith__Ljava_lang_String_2__Z(env, objRef, prefixRef);
+			default:
+				throw new UnsupportedOperationException(errorMessage);
+		}
+	}
 
 	@MJI
 	@Override
