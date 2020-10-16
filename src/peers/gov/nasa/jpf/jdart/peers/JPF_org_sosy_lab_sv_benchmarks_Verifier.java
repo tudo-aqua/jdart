@@ -1,4 +1,4 @@
-/*package gov.nasa.jpf.jdart.peers;
+package gov.nasa.jpf.jdart.peers;
 import gov.nasa.jpf.annotation.MJI;
 import gov.nasa.jpf.constraints.api.Variable;
 import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
@@ -18,4 +18,3 @@ env.addObjectAttr(res, smtString);
 return res;
 }
 }
-*/
