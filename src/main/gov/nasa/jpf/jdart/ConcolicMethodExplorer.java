@@ -141,7 +141,8 @@ public class ConcolicMethodExplorer {
 
 		// create a constraints tree
 		this.solverCtx = config.getSolver().createContext();
-		this.constraintsTree = new InternalConstraintsTree(solverCtx, anaConf, vals);
+		this.constraintsTree = new InternalConstraintsTree(solverCtx, anaConf, vals,
+				config.getExplorationStrategy(), config.getIncremental());
 		this.ts = config.getTerminationStrategy();
 		sm = config.getStringModel();
 	}

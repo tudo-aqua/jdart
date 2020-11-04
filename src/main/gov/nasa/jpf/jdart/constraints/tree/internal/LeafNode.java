@@ -8,7 +8,7 @@ class LeafNode extends Node {
 
     private final NodeType type;
 
-    private boolean incomplete = false;
+    private boolean complete = true;
 
     LeafNode(DecisionNode parent, NodeType type, int pos) {
         super(parent, pos);
@@ -45,6 +45,14 @@ class LeafNode extends Node {
         return false;
     }
 
+    boolean complete() {
+        return complete;
+    }
+
+    void setComplete(boolean c) {
+        complete = c;
+    }
+
     static LeafNode skipped(DecisionNode parent, int pos) {
         return new LeafNode(parent, NodeType.SKIPPED, pos);
     }
@@ -66,7 +74,7 @@ class LeafNode extends Node {
     }
 
     public String toString() {
-        return "" + type;
+        return "" + type + "[complete path:" + complete + "]";
     }
 
     void print(StringBuilder out, int indent) {

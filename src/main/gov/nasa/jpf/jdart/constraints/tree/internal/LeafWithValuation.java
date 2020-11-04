@@ -21,6 +21,7 @@ class LeafWithValuation extends LeafNode {
 
     void print(StringBuilder out, int indent) {
         indent(out, indent);
-        out.append(NodeType.OK).append(" . ").append( values() ).append("\n");
+        out.append(NodeType.OK).append("[complete path:").append(complete()).append("]").
+                append(" . ").append( values() ).append("\n");
     }
 }

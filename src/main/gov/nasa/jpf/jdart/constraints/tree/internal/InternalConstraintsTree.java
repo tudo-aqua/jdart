@@ -24,6 +24,7 @@ import gov.nasa.jpf.constraints.api.SolverContext;
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.constraints.util.ExpressionUtil;
 import gov.nasa.jpf.jdart.config.AnalysisConfig;
+import gov.nasa.jpf.jdart.config.ConcolicConfig;
 import gov.nasa.jpf.jdart.config.ConcolicValues;
 import gov.nasa.jpf.jdart.constraints.paths.PathResult;
 import gov.nasa.jpf.util.JPFLogger;
@@ -34,6 +35,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+
+import static gov.nasa.jpf.jdart.config.ConcolicConfig.ExplorationStrategy.DFS;
+import static gov.nasa.jpf.jdart.config.ConcolicConfig.ExplorationStrategy.IN_ORDER;
 
 public class InternalConstraintsTree {
 
@@ -113,17 +117,31 @@ public class InternalConstraintsTree {
 	/**
 	 * exploration strategy
 	 */
-	private final ExplorationStrategy strategy = new DFSExplorationStrategy();
+	private ExplorationStrategy strategy = new DFSExplorationStrategy();
 
 	InternalConstraintsTree(SolverContext solverCtx, AnalysisConfig anaConf) {
-		this(solverCtx, anaConf, null);
+		this(solverCtx, anaConf, null, DFS, false);
 	}
 
-	public InternalConstraintsTree(SolverContext solverCtx, AnalysisConfig anaConf, ConcolicValues replayValues) {
+	public InternalConstraintsTree(SolverContext solverCtx, AnalysisConfig anaConf, ConcolicValues replayValues,
+								   ConcolicConfig.ExplorationStrategy strategy, boolean incremental) {
 		this.solverCtx = solverCtx;
 		this.anaConf = anaConf;
 		this.exploreMode = anaConf.isExploreInitially();
 		this.replayValues = replayValues;
+
+		this.incremental = incremental;
+
+		System.out.println("Exploration Strategy: " + strategy);
+		switch (strategy) {
+			case BFS:
+				this.strategy = new BFSExplorationStrategy();
+			case IN_ORDER:
+				this.strategy = new InOrderExplorationStrategy();
+			case DFS:
+			default:
+				// already defaults to DFS
+		}
 
 		solverCtx.push();
 	}
@@ -225,10 +243,11 @@ public class InternalConstraintsTree {
 			}
 
 			// expand tree ...
-			if (!anaConf.maxDepthExceeded(current.depth())) {
-
-				// TODO: XXXXXXX
-				System.out.println("expanding");
+			if (anaConf.maxDepthExceeded(current.depth())) {
+				System.out.println("max depth exceeded ...");
+				leaf.setComplete(false);
+			}
+			else {
 				current = expand(leaf, insn, branchIdx, decisions);
 			}
 		}
@@ -282,9 +301,9 @@ public class InternalConstraintsTree {
 				break;
 		}
 
-		if (anaConf.maxDepthExceeded(current.depth())) {
-			//
-		}
+		updatedLeaf.setComplete( ((LeafNode)current).complete() );
+
+		System.out.println("MAX DEPTH: " + anaConf.getTreeMaxDepth());
 
 		current.parent().replace( (LeafNode) current, updatedLeaf);
 		current = updatedLeaf;
@@ -442,7 +461,7 @@ public class InternalConstraintsTree {
 			}
 
 			// update context and current target
-			updateContext(currentTarget == null ? root : currentTarget, nextOpen);
+			updateContext((currentTarget == null || currentTarget.parent() == null) ? root : currentTarget, nextOpen);
 			currentTarget = nextOpen;
 
 			// find model

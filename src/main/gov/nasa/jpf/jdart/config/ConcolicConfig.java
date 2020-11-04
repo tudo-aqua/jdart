@@ -59,6 +59,11 @@ public class ConcolicConfig {
 
 	private StringModel stringModel = StringModel.BVModel;
 
+	public static enum ExplorationStrategy { DFS, BFS, IN_ORDER};
+	private ExplorationStrategy explorationStrategy = ExplorationStrategy.DFS;
+
+	private boolean incremental = true;
+
 	/**
 	 * strategy for terminating jdart
 	 */
@@ -124,6 +129,10 @@ public class ConcolicConfig {
 	public TerminationStrategy getTerminationStrategy() {
 		return this.termination;
 	}
+
+	public boolean getIncremental() { return incremental; }
+
+	public ExplorationStrategy getExplorationStrategy() { return explorationStrategy; }
 
 	public Config generateJPFConfig() {
 		return generateJPFConfig(null);
@@ -222,6 +231,9 @@ public class ConcolicConfig {
 		this.solver = cFactory.createSolver(conf);
 		this.stringModel = parseStringModel(conf);
 
+		this.explorationStrategy = parseExplorationStrategy(conf);
+		this.incremental = parseIncrmental(conf);
+
 		// parse symbolic method info
 		if (conf.hasValue(CONF_PREFIX + ".method")) {
 			String id = conf.getString(CONF_PREFIX + ".method");
@@ -231,6 +243,28 @@ public class ConcolicConfig {
 
 		// parse termination
 		this.termination = parseTerminationStrategy(conf);
+	}
+
+	private static boolean parseIncrmental(Config conf) {
+		if (conf.hasValue("jdart.incremental")) {
+			return conf.getBoolean("jdart.incremental");
+		}
+		return false;
+	}
+
+	private static ExplorationStrategy parseExplorationStrategy(Config conf) {
+		if (!conf.hasValue("jdart.exploration")) {
+			return ExplorationStrategy.DFS;
+		}
+		switch (conf.getString("jdart.exploration")) {
+			case "BFS":
+				return ExplorationStrategy.BFS;
+		case "IN_ORDER":
+				return ExplorationStrategy.IN_ORDER;
+			case "DFS":
+			default:
+				return ExplorationStrategy.DFS;
+		}
 	}
 
 	public static TerminationStrategy parseTerminationStrategy(Config conf) {

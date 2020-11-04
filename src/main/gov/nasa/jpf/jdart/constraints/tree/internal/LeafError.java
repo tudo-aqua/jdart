@@ -15,6 +15,8 @@ class LeafError extends LeafWithValuation {
 
     void print(StringBuilder out, int indent) {
         indent(out, indent);
-        out.append(NodeType.OK).append(" . ").append( values() ).append(" . ").append( exceptionClass ).append("\n");
+        out.append(NodeType.ERROR).append("[complete path:").append(complete()).append("]").
+                append(" . ").append( values() ).append(" . ").
+                append( exceptionClass ).append("\n");
     }
 }
