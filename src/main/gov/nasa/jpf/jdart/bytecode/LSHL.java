@@ -53,14 +53,14 @@ public class LSHL extends gov.nasa.jpf.jvm.bytecode.LSHL {
            * only the five lowest-order bits of the right-hand operand 
            * are used as the shift distance. It is as if the right-hand 
            * operand were subjected to a bitwise logical AND operator & 
-           * (§15.22.1) with the mask value 0x1f (0b11111). The shift 
+           * (p15.22.1) with the mask value 0x1f (0b11111). The shift
            * distance actually used is therefore always in the range 0 
            * to 31, inclusive.
            *
            * If the promoted type of the left-hand operand is long, then 
            * only the six lowest-order bits of the right-hand operand are 
            * used as the shift distance. It is as if the right-hand operand 
-           * were subjected to a bitwise logical AND operator & (§15.22.1) 
+           * were subjected to a bitwise logical AND operator & (p15.22.1)
            * with the mask value 0x3f (0b111111). The shift distance actually 
            * used is therefore always in the range 0 to 63, inclusive.
            */
