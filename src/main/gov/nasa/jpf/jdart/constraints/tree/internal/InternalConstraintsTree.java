@@ -132,7 +132,8 @@ public class InternalConstraintsTree {
 
 		this.incremental = incremental;
 
-		System.out.println("Exploration Strategy: " + strategy);
+		logger.info("Exploration Strategy: " + strategy);
+		logger.info("Incremental solving: " + incremental);
 		switch (strategy) {
 			case BFS:
 				this.strategy = new BFSExplorationStrategy();
@@ -196,7 +197,7 @@ public class InternalConstraintsTree {
 	 */
 	public BranchEffect decision(Instruction insn, int branchIdx, Expression<Boolean>[] decisions) {
 
-		System.out.println("dec: " + Arrays.toString(decisions) + " : " + branchIdx);
+		//System.out.println("dec: " + Arrays.toString(decisions) + " : " + branchIdx);
 
 		// 1. at decision node => move down in the tree, check that decision is
 		//    expected, and check that decision matches bc decision
@@ -303,8 +304,6 @@ public class InternalConstraintsTree {
 
 		updatedLeaf.setComplete( ((LeafNode)current).complete() );
 
-		System.out.println("MAX DEPTH: " + anaConf.getTreeMaxDepth());
-
 		current.parent().replace( (LeafNode) current, updatedLeaf);
 		current = updatedLeaf;
 		if (initialTarget == null) {
@@ -343,7 +342,7 @@ public class InternalConstraintsTree {
 	private void updateContext(Node from, Node to) {
 		if (incremental) {
 			Node lca = leastCommonAncestor(from, to);
-			System.out.println(lca + " " + from.depth() + " " + to.depth());
+			//System.out.println(lca + " " + from.depth() + " " + to.depth());
 			int popDepth = from.depth() - lca.depth();
 			if (popDepth > 0) {
 				solverCtx.pop(popDepth);
@@ -359,7 +358,7 @@ public class InternalConstraintsTree {
 			solverCtx.pop();
 			solverCtx.push();
 			List<Expression<Boolean>> path = pathConstraint(to, root);
-			System.out.println("solving: " + Arrays.toString( path.toArray() ));
+			//System.out.println("solving: " + Arrays.toString( path.toArray() ));
 			solverCtx.add(path);
 		}
 
