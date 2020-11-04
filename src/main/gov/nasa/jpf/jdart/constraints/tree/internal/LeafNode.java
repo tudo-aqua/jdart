@@ -30,6 +30,16 @@ class LeafNode extends Node {
                 type != NodeType.OPEN;
     }
 
+    /**
+     * nodes that we do not want to replace
+     * @return
+     */
+    boolean isFinal() {
+        return type == NodeType.BUGGY ||
+               type == NodeType.OK ||
+               type == NodeType.ERROR;
+    }
+
     @Override
     boolean isDecisionNode() {
         return false;

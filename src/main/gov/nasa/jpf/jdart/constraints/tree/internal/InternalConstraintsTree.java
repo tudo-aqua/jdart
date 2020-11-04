@@ -103,7 +103,7 @@ public class InternalConstraintsTree {
 	/**
 	 * internal mode switch: replay given valuations
 	 */
-	private boolean replayMode = false;
+	private boolean replayMode = true;
 
 	/**
 	 * use incremental solving
@@ -189,7 +189,7 @@ public class InternalConstraintsTree {
 			current = dn.getChild(branchIdx);
 
 			// if still on track
-			if (!diverged) {
+			if (!replayMode && !diverged) {
 				// diverging now?
 				// check if still in expected path
 				int depth = dn.depth();
@@ -264,13 +264,19 @@ public class InternalConstraintsTree {
 	 */
 	public void finish(PathResult result) {
 		LeafNode updatedLeaf = null;
+
+		// explored to here before ...
+		if ( ((LeafNode)current).isFinal() ) {
+			return;
+		}
+
 		switch (result.getState()) {
 			case OK:
-				updatedLeaf = new LeafOK(currentTarget.parent(), currentTarget.childId(), currentValues,
+				updatedLeaf = new LeafOK(current.parent(), current.childId(), currentValues,
 						((PathResult.OkResult) result).getPostCondition() );
 				break;
 			case ERROR:
-				updatedLeaf = new LeafError(currentTarget.parent(), currentTarget.childId(), currentValues,
+				updatedLeaf = new LeafError(current.parent(), current.childId(), currentValues,
 						((PathResult.ErrorResult) result).getExceptionClass(),
 						((PathResult.ErrorResult) result).getStackTrace());
 				break;
@@ -291,8 +297,7 @@ public class InternalConstraintsTree {
 	 *
 	 */
 	public void failCurrentTargetDontKnow() {
-		LeafNode dk = new LeafWithValuation(currentTarget.parent(), LeafNode.NodeType.DONT_KNOW,
-				currentTarget.childId(), currentValues);
+		LeafNode dk = LeafNode.dontKnow(currentTarget.parent(), currentTarget.childId());
 		currentTarget.parent().replace(currentTarget, dk);
 		currentTarget = dk;
 	}
@@ -305,7 +310,7 @@ public class InternalConstraintsTree {
 	}
 
 	public void failCurrentTargetUnsat() {
-		LeafNode unsat = new LeafNode(currentTarget.parent(), LeafNode.NodeType.UNSAT, currentTarget.childId());
+		LeafNode unsat = LeafNode.unsat(currentTarget.parent(), currentTarget.childId());
 		currentTarget.parent().replace(currentTarget, unsat);
 		currentTarget = unsat;
 	}
@@ -411,7 +416,6 @@ public class InternalConstraintsTree {
 			if (replayValues == null || !replayValues.hasNext()) {
 				replayMode = false;
 			} else {
-				current = root;
 				currentTarget = null;
 				assert this.expectedPath.isEmpty();
 				return replayValues.next();
@@ -438,7 +442,7 @@ public class InternalConstraintsTree {
 			}
 
 			// update context and current target
-			updateContext(currentTarget.parent() == null ? root : currentTarget, nextOpen);
+			updateContext(currentTarget == null ? root : currentTarget, nextOpen);
 			currentTarget = nextOpen;
 
 			// find model
