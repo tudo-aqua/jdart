@@ -351,16 +351,16 @@ public class InternalConstraintsTree {
 
 			List<Expression<Boolean>> path = pathConstraint(to, lca);
 			for (Expression<Boolean> clause : path) {
-				assertExpression(clause);
 				solverCtx.push();
+				assertExpression(clause);
 			}
 		}
 		else {
 			solverCtx.pop();
+			solverCtx.push();
 			List<Expression<Boolean>> path = pathConstraint(to, root);
 			System.out.println("solving: " + Arrays.toString( path.toArray() ));
 			solverCtx.add(path);
-			solverCtx.push();
 		}
 
 	}

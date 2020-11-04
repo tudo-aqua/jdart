@@ -20,9 +20,11 @@ public class Input {
   
   public void foo() {
     Random r = new Random();
-    if (r.nextInt() < 500) {
-      if (r.nextBoolean()) {
-        assert false;        
+    for (int j = 1; j < 10; j++) {
+      if (r.nextInt() < 500) {
+        if (r.nextBoolean()) {
+          assert false;
+        }
       }
     }
   }
