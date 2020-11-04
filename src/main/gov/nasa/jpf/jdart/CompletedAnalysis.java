@@ -17,7 +17,8 @@ package gov.nasa.jpf.jdart;
 
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
-import gov.nasa.jpf.jdart.constraints.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.internal.InternalConstraintsTree;
 
 import java.io.IOException;
 
@@ -25,11 +26,11 @@ public class CompletedAnalysis {
   
   private final ConcolicMethodConfig methodConfig;
   private final Valuation initialValuation;
-  private final ConstraintsTree constraintsTree;
+  private final InternalConstraintsTree constraintsTree;
   
   private final Object[] initParams;
 
-  public CompletedAnalysis(ConcolicMethodConfig methodConfig, Valuation initialValuation, Object[] initParams, ConstraintsTree constraintsTree) {
+  public CompletedAnalysis(ConcolicMethodConfig methodConfig, Valuation initialValuation, Object[] initParams, InternalConstraintsTree constraintsTree) {
     this.methodConfig = methodConfig;
     this.initialValuation = initialValuation;
     this.constraintsTree = constraintsTree;
@@ -45,7 +46,7 @@ public class CompletedAnalysis {
     return initialValuation;
   }
   
-  public ConstraintsTree getConstraintsTree() {
+  public InternalConstraintsTree getConstraintsTree() {
     return constraintsTree;
   }
   
@@ -55,7 +56,7 @@ public class CompletedAnalysis {
     initialValuation.print(a);
     a.append('\n');
     a.append("Constraints tree:\n");
-    a.append(constraintsTree.toString(false, true));
+    a.append(constraintsTree.toString());
   }
   
   public String toString() {

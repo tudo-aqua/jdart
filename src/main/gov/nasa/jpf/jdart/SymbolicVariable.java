@@ -17,7 +17,7 @@ package gov.nasa.jpf.jdart;
 
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.constraints.api.Variable;
-import gov.nasa.jpf.jdart.constraints.PostCondition;
+import gov.nasa.jpf.jdart.constraints.paths.PostCondition;
 import gov.nasa.jpf.vm.StackFrame;
 
 /**

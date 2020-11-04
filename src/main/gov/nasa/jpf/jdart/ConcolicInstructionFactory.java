@@ -110,7 +110,7 @@ import gov.nasa.jpf.vm.NativeMethodInfo;
  */
 public class ConcolicInstructionFactory extends gov.nasa.jpf.jvm.bytecode.InstructionFactory {
 
-	public static final boolean DEBUG = false;
+	public static final boolean DEBUG = true;
 	public static JPFLogger logger = JPF.getLogger("jdart");
 
 

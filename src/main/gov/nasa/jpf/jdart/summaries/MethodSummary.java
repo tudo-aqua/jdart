@@ -16,8 +16,8 @@
 package gov.nasa.jpf.jdart.summaries;
 
 import gov.nasa.jpf.constraints.api.Valuation;
-import gov.nasa.jpf.jdart.constraints.ConstraintsTree;
-import gov.nasa.jpf.jdart.constraints.Path;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.paths.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;

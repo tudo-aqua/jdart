@@ -13,7 +13,7 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the 
  * specific language governing permissions and limitations under the License.
  */
-package gov.nasa.jpf.jdart.constraints;
+package gov.nasa.jpf.jdart.constraints.paths;
 
 /**
  * Final state of a program path

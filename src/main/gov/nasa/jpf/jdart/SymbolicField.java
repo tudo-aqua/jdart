@@ -19,7 +19,7 @@ import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.constraints.api.Variable;
 import gov.nasa.jpf.constraints.expressions.Constant;
-import gov.nasa.jpf.jdart.constraints.PostCondition;
+import gov.nasa.jpf.jdart.constraints.paths.PostCondition;
 import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.FieldInfo;
 import gov.nasa.jpf.vm.StackFrame;
@@ -72,7 +72,7 @@ public class SymbolicField<T> extends SymbolicVariable<T> {
 
   /*
    * (non-Javadoc)
-   * @see gov.nasa.jpf.jdart.SymbolicVariable#addToPC(gov.nasa.jpf.jdart.constraints.PostCondition)
+   * @see gov.nasa.jpf.jdart.SymbolicVariable#addToPC(gov.nasa.jpf.jdart.constraints.paths.PostCondition)
    */
   @Override
   @SuppressWarnings("unchecked")

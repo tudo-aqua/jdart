@@ -23,7 +23,7 @@ import gov.nasa.jpf.constraints.api.Variable;
 import gov.nasa.jpf.constraints.util.ExpressionUtil;
 import gov.nasa.jpf.jdart.config.ConcolicConfig;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
-import gov.nasa.jpf.jdart.constraints.Path;
+import gov.nasa.jpf.jdart.constraints.paths.Path;
 import gov.nasa.jpf.jdart.testsuites.TestSuiteGenerator;
 import gov.nasa.jpf.util.JPFLogger;
 import gov.nasa.jpf.util.LogHandler;
@@ -35,14 +35,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
-import java.util.logging.SimpleFormatter;
 
 /**
  * The actual jdart jpf-shell to be started from config files.
@@ -257,13 +255,13 @@ public class JDart implements JPFShell {
         
         //logger.info("Initial valuation: ", ca.getInitialValuation());
         if (!config.getBoolean("jdart.tree.dont.print")) {
-          logger.info(ca.getConstraintsTree().toString(false, true));
+          logger.info(ca.getConstraintsTree().toString());
         }   
         if (config.getBoolean("jdart.tree.json.print")) {
-          ca.getConstraintsTree().toJson(config.getProperty("jdart.tree.json.dir") + 
-            "/" + jpfConf.getProperty("jpf.app") + ".json");
+          //ca.getConstraintsTree().toJson(config.getProperty("jdart.tree.json.dir") +
+          //  "/" + jpfConf.getProperty("jpf.app") + ".json");
         }
-
+        /*
         logger.info("----Constraints Tree Statistics---");
         logger.info("# paths (total): " + ca.getConstraintsTree().getAllPaths().size());
         logger.info("# OK paths: " + ca.getConstraintsTree().getCoveredPaths().size());
@@ -313,6 +311,7 @@ public class JDart implements JPFShell {
           }
         }
         logger.info("--------------------------------");
+         */
       }
     }
 

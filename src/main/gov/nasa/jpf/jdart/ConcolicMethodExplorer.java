@@ -34,11 +34,11 @@ import gov.nasa.jpf.jdart.config.ConcolicConfig;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
 import gov.nasa.jpf.jdart.config.ConcolicValues;
 import gov.nasa.jpf.jdart.config.ParamConfig;
-import gov.nasa.jpf.jdart.constraints.ConstraintsTree;
-import gov.nasa.jpf.jdart.constraints.InternalConstraintsTree;
-import gov.nasa.jpf.jdart.constraints.InternalConstraintsTree.BranchEffect;
-import gov.nasa.jpf.jdart.constraints.PathResult;
-import gov.nasa.jpf.jdart.constraints.PostCondition;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.internal.InternalConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.internal.InternalConstraintsTree.BranchEffect;
+import gov.nasa.jpf.jdart.constraints.paths.PathResult;
+import gov.nasa.jpf.jdart.constraints.paths.PostCondition;
 import gov.nasa.jpf.jdart.objects.SymbolicObjectsContext;
 import gov.nasa.jpf.jdart.termination.TerminateOnAssertionError;
 import gov.nasa.jpf.jdart.termination.TerminationStrategy;
@@ -147,7 +147,7 @@ public class ConcolicMethodExplorer {
 	}
 
 	public void setExplore(boolean explore) {
-		constraintsTree.setExplore(explore);
+		constraintsTree.setExploreMode(explore);
 	}
 
 	public String getId() {
@@ -409,14 +409,15 @@ public class ConcolicMethodExplorer {
 														 Expression<Boolean>... expressions) {
 		BranchEffect eff = constraintsTree.decision(branchInsn, chosenIdx, expressions);
 		switch (eff) {
-			case INCONCLUSIVE:
-				logger.severe("Aborting current execution due to inconclusive divergence...");
-				constraintsTree.failCurrentTarget();
+			case BUGGY:
+				logger.severe("Aborting current execution due to buggy divergence...");
+				constraintsTree.failCurrentTargetBuggy("Aborting current execution due to buggy divergence...");
 				ti.breakTransition(true);
 				break;
 			case UNEXPECTED:
 				logger.warning("Unexpected divergence in execution of current valuation ...");
-				constraintsTree.failCurrentTarget(); // TODO: Here, we could make more effort ...
+				// TODO: Here, we could make more effort (e.g., using a constraint solver again)...
+				constraintsTree.failCurrentTargetDiverged();
 				break;
 			default:
 		}
@@ -432,7 +433,8 @@ public class ConcolicMethodExplorer {
 	}
 
 	public CompletedAnalysis finish() {
-		return new CompletedAnalysis(methodConfig, initValuation, initParams, constraintsTree.toFinalCTree());
+		constraintsTree.setInitialValuation(initValuation);
+		return new CompletedAnalysis(methodConfig, initValuation, initParams, constraintsTree);
 	}
 
 	public void newPath(StackFrame sf) {
@@ -456,25 +458,25 @@ public class ConcolicMethodExplorer {
 	public void methodExited(ThreadInfo ti, MethodInfo mi) {
 		RestoreExploreState r = ti.getTopFrame().getFrameAttr(RestoreExploreState.class);
 		if (r != null) {
-			constraintsTree.setExplore(r.explore);
+			constraintsTree.setExploreMode(r.explore);
 			logger.finer("Restored exploration state after leaving method ", mi.getFullName());
 		}
 	}
 
 	public void methodEntered(ThreadInfo ti, MethodInfo mi) {
-		boolean explore = constraintsTree.isExplore();
+		boolean explore = constraintsTree.isExploreMode();
 
 		if (explore) {
 			if (anaConf.suspendExploration(mi)) {
 				ti.getTopFrame().setFrameAttr(new RestoreExploreState(explore));
 				logger.finer("Suspending exploration in method " + mi.getFullName());
-				constraintsTree.setExplore(false);
+				constraintsTree.setExploreMode(false);
 			}
 		} else {
 			if (anaConf.resumeExploration(mi)) {
 				ti.getTopFrame().setFrameAttr(new RestoreExploreState(explore));
 				logger.finer("Resuming exploration in method " + mi.getFullName());
-				constraintsTree.setExplore(true);
+				constraintsTree.setExploreMode(true);
 			}
 		}
 	}
@@ -569,6 +571,7 @@ public class ConcolicMethodExplorer {
 
 	// LEGACY API
 
+	/*
 	@Deprecated
 	public ConstraintsTree getConstraintsTree() {
 		return constraintsTree.toFinalCTree();
@@ -578,4 +581,6 @@ public class ConcolicMethodExplorer {
 	public Valuation getOriginalInitialValuation() {
 		return initValuation;
 	}
+
+	 */
 }

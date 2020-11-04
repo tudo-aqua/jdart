@@ -13,7 +13,7 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the 
  * specific language governing permissions and limitations under the License.
  */
-package gov.nasa.jpf.jdart.constraints;
+package gov.nasa.jpf.jdart.constraints.tree;
 
 import com.google.gson.Gson;
 import gov.nasa.jpf.JPF;
@@ -25,6 +25,9 @@ import gov.nasa.jpf.constraints.expressions.Negation;
 import gov.nasa.jpf.constraints.expressions.PropositionalCompound;
 import gov.nasa.jpf.constraints.util.ExpressionUtil;
 import gov.nasa.jpf.constraints.util.MixedParamsException;
+import gov.nasa.jpf.jdart.constraints.paths.Path;
+import gov.nasa.jpf.jdart.constraints.paths.PathResult;
+import gov.nasa.jpf.jdart.constraints.paths.PathState;
 import gov.nasa.jpf.util.JPFLogger;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -540,18 +543,6 @@ public class ConstraintsTree {
     
     return result;    
   }
-  
-  private void getDoneLeaves(Node n, Collection<Node> leaves) {
-    if (n == null) {
-      return;
-    }
-    
-    if (n.isLeaf()) {
-      leaves.add(n);
-    }
-    
-    getDoneLeaves(n.succFalse, leaves);
-    getDoneLeaves(n.succTrue, leaves);
-  }
+
 
 }
