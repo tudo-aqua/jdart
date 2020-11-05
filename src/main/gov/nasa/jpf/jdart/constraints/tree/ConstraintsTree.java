@@ -295,7 +295,12 @@ public class ConstraintsTree {
 
 		updatedLeaf.setComplete( ((LeafNode)current).complete() );
 
-		current.parent().replace( (LeafNode) current, updatedLeaf);
+		if (current.parent() == null) {
+			root = updatedLeaf;
+		}
+		else {
+			current.parent().replace((LeafNode) current, updatedLeaf);
+		}
 		current = updatedLeaf;
 		if (initialTarget == null) {
 			initialTarget = updatedLeaf;
