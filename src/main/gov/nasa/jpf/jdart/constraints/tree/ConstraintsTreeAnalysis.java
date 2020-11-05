@@ -127,7 +127,10 @@ public class ConstraintsTreeAnalysis {
    * data retrieval
    * 
    */
-  
+  public Collection<LeafNode> getOpenLeafs() {
+    return getNodesMatchingStates( EnumSet.of(LeafNode.NodeType.OPEN) );
+  }
+
   public Collection<LeafNode> getOkLeafs() {
     return getNodesMatchingStates( EnumSet.of(LeafNode.NodeType.OK) );
   }

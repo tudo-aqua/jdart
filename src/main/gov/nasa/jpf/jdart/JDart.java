@@ -271,6 +271,7 @@ public class JDart implements JPFShell {
         logger.info("# ERROR paths: " + ctAnalysis.getErrorLeafs().size());
         logger.info("# UNSAT paths: " + ctAnalysis.getUnsatLeafs().size());
         logger.info("# DONT_KNOW paths: " + ctAnalysis.getDontKnowLeafs().size());
+        logger.info("# OPEN paths: " + ctAnalysis.getOpenLeafs().size());
         logger.info("# SKIPPED paths: " + ctAnalysis.getSkippedLeafs().size());
         logger.info("# BUGGY paths: " + ctAnalysis.getBuggyLeafs().size());
         logger.info("# DIVERGED paths: " + ctAnalysis.getDivergedLeafs().size());
