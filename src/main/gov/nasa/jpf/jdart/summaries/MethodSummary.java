@@ -16,7 +16,7 @@
 package gov.nasa.jpf.jdart.summaries;
 
 import gov.nasa.jpf.constraints.api.Valuation;
-import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTreeAnalysis;
 import gov.nasa.jpf.jdart.constraints.paths.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,15 +36,15 @@ public class MethodSummary implements Iterable<Path> {
   private Valuation partialInitialValuation = null;
   
     
-  public MethodSummary(String mid, ConstraintsTree ct, Valuation partialInitial) {
+  public MethodSummary(String mid, ConstraintsTreeAnalysis ct, Valuation partialInitial) {
     this(mid, ct);
     this.partialInitialValuation = partialInitial;
   }
   
-  public MethodSummary(String methodId, ConstraintsTree ct) {
-    this.okPaths = new ArrayList<>(ct.getCoveredPaths());
-    this.errorPaths = new ArrayList<>(ct.getErrorPaths());
-    this.dontKnowPaths = new ArrayList<>(ct.getDontKnowPaths());
+  public MethodSummary(String methodId, ConstraintsTreeAnalysis ct) {
+    //this.okPaths = new ArrayList<>(ct.getCoveredPaths());
+    //this.errorPaths = new ArrayList<>(ct.getErrorPaths());
+    //this.dontKnowPaths = new ArrayList<>(ct.getDontKnowPaths());
     this.methodId = methodId;            
   }
   

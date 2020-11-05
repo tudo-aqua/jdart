@@ -24,6 +24,8 @@ import gov.nasa.jpf.constraints.util.ExpressionUtil;
 import gov.nasa.jpf.jdart.config.ConcolicConfig;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
 import gov.nasa.jpf.jdart.constraints.paths.Path;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTreeAnalysis;
 import gov.nasa.jpf.jdart.testsuites.TestSuiteGenerator;
 import gov.nasa.jpf.util.JPFLogger;
 import gov.nasa.jpf.util.LogHandler;
@@ -252,27 +254,34 @@ public class JDart implements JPFShell {
         }
         
         // FIXME: refactor this. 
-        
+        ConstraintsTreeAnalysis ctAnalysis = new ConstraintsTreeAnalysis(ca.getConstraintsTree());
+
         //logger.info("Initial valuation: ", ca.getInitialValuation());
         if (!config.getBoolean("jdart.tree.dont.print")) {
-          logger.info(ca.getConstraintsTree().toString());
+          logger.info(ctAnalysis.toString());
         }   
         if (config.getBoolean("jdart.tree.json.print")) {
           //ca.getConstraintsTree().toJson(config.getProperty("jdart.tree.json.dir") +
           //  "/" + jpfConf.getProperty("jpf.app") + ".json");
         }
-        /*
+
         logger.info("----Constraints Tree Statistics---");
-        logger.info("# paths (total): " + ca.getConstraintsTree().getAllPaths().size());
-        logger.info("# OK paths: " + ca.getConstraintsTree().getCoveredPaths().size());
-        logger.info("# ERROR paths: " + ca.getConstraintsTree().getErrorPaths().size());
-        logger.info("# DONT_KNOW paths: " + ca.getConstraintsTree().getDontKnowPaths().size());
+        //logger.info("# paths (total): " + ctAnalysis.getAllPaths().size());
+        logger.info("# OK paths: " + ctAnalysis.getOkLeafs().size());
+        logger.info("# ERROR paths: " + ctAnalysis.getErrorLeafs().size());
+        logger.info("# UNSAT paths: " + ctAnalysis.getUnsatLeafs().size());
+        logger.info("# DONT_KNOW paths: " + ctAnalysis.getDontKnowLeafs().size());
+        logger.info("# SKIPPED paths: " + ctAnalysis.getSkippedLeafs().size());
+        logger.info("# BUGGY paths: " + ctAnalysis.getBuggyLeafs().size());
+        logger.info("# DIVERGED paths: " + ctAnalysis.getDivergedLeafs().size());
         logger.info("");
         
         logger.info("-------Valuation Statistics-------");
-        logger.info("# of valuations (OK+ERR): " + (ca.getConstraintsTree().getCoveredPaths().size() + ca.getConstraintsTree().getErrorPaths().size()));
+        logger.info("# of valuations (OK+ERR): " +
+                (ctAnalysis.getOkLeafs().size() + ctAnalysis.getErrorLeafs().size()));
         logger.info("");
-        for (Path p : ca.getConstraintsTree().getAllPaths()) {
+        /*
+        for (Path p : ctAnalysis.getAllPaths()) {
           if (p.getValuation() == null) {
             // dont know cases
             continue;
@@ -310,8 +319,8 @@ public class JDart implements JPFShell {
             }
           }
         }
+        */
         logger.info("--------------------------------");
-         */
       }
     }
 

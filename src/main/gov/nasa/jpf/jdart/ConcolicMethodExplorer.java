@@ -35,8 +35,7 @@ import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
 import gov.nasa.jpf.jdart.config.ConcolicValues;
 import gov.nasa.jpf.jdart.config.ParamConfig;
 import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
-import gov.nasa.jpf.jdart.constraints.tree.internal.InternalConstraintsTree;
-import gov.nasa.jpf.jdart.constraints.tree.internal.InternalConstraintsTree.BranchEffect;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree.BranchEffect;
 import gov.nasa.jpf.jdart.constraints.paths.PathResult;
 import gov.nasa.jpf.jdart.constraints.paths.PostCondition;
 import gov.nasa.jpf.jdart.objects.SymbolicObjectsContext;
@@ -100,7 +99,7 @@ public class ConcolicMethodExplorer {
 	/**
 	 * constraints tree from exploring method
 	 */
-	private InternalConstraintsTree constraintsTree;
+	private ConstraintsTree constraintsTree;
 
 	/**
 	 * the original initial valuation for symbolic vars
@@ -141,7 +140,7 @@ public class ConcolicMethodExplorer {
 
 		// create a constraints tree
 		this.solverCtx = config.getSolver().createContext();
-		this.constraintsTree = new InternalConstraintsTree(solverCtx, anaConf, vals,
+		this.constraintsTree = new ConstraintsTree(solverCtx, anaConf, vals,
 				config.getExplorationStrategy(), config.getIncremental());
 		this.ts = config.getTerminationStrategy();
 		sm = config.getStringModel();
@@ -429,7 +428,7 @@ public class ConcolicMethodExplorer {
 		return this.methodConfig;
 	}
 
-	public InternalConstraintsTree getInternalConstraintsTree() {
+	public ConstraintsTree getInternalConstraintsTree() {
 		return this.constraintsTree;
 	}
 

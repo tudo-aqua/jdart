@@ -26,7 +26,7 @@ import gov.nasa.jpf.jdart.CompletedAnalysis;
 import gov.nasa.jpf.jdart.ConcolicExplorer;
 import gov.nasa.jpf.jdart.JDart;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
-import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTreeAnalysis;
 import gov.nasa.jpf.jdart.constraints.paths.PathResult;
 import gov.nasa.jpf.util.TemplateBasedCompiler;
 import gov.nasa.jpf.jdart.summaries.json.ExpressionHandler;
@@ -219,7 +219,7 @@ public class SummaryStore {
     ConcolicExplorer cex = jdart.run();
     
     CompletedAnalysis ca = cex.getFirstCompletedAnalysis(mw.getId());
-    ConstraintsTree ct = null; //ca.getConstraintsTree();
+    ConstraintsTreeAnalysis ct = null; //ca.getConstraintsTree();
     MethodSummary summary = new MethodSummary(mw.getId(), ct, ca.getInitialValuation());
 
     c.remove("target");

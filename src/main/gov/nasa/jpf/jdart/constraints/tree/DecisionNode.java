@@ -1,4 +1,4 @@
-package gov.nasa.jpf.jdart.constraints.tree.internal;
+package gov.nasa.jpf.jdart.constraints.tree;
 
 import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.Valuation;
@@ -36,6 +36,10 @@ class DecisionNode extends Node {
 
     Node getChild(int idx) {
         return children[idx];
+    }
+
+    Node[] children() {
+        return this.children;
     }
 
     @Override

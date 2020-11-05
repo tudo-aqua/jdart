@@ -1,19 +1,19 @@
-package gov.nasa.jpf.jdart.constraints.tree.internal;
+package gov.nasa.jpf.jdart.constraints.tree;
 
 import java.util.LinkedList;
 
-class InOrderExplorationStrategy implements ExplorationStrategy {
+class DFSExplorationStrategy implements ExplorationStrategy {
 
     private LinkedList<LeafNode> nodes = new LinkedList<>();
 
     @Override
     public LeafNode nextOpenNode() {
-        return nodes.poll();
+        return nodes.pop();
     }
 
     @Override
     public void newOpen(LeafNode n) {
-        nodes.offer(n);
+        nodes.push(n);
     }
 
     @Override

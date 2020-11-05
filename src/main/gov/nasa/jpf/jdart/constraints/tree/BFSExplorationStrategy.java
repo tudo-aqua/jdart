@@ -1,4 +1,4 @@
-package gov.nasa.jpf.jdart.constraints.tree.internal;
+package gov.nasa.jpf.jdart.constraints.tree;
 
 import java.util.Comparator;
 import java.util.PriorityQueue;

@@ -1,7 +1,4 @@
-package gov.nasa.jpf.jdart.constraints.tree.internal;
-
-import gov.nasa.jpf.constraints.api.Expression;
-import gov.nasa.jpf.jdart.constraints.paths.PathResult;
+package gov.nasa.jpf.jdart.constraints.tree;
 
 abstract class Node {
 
