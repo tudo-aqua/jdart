@@ -15,10 +15,12 @@
  */
 package gov.nasa.jpf.jdart.bytecode;
 
+import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.expressions.NumericCompound;
 import gov.nasa.jpf.constraints.expressions.NumericOperator;
 import gov.nasa.jpf.jdart.ConcolicInstructionFactory;
 import gov.nasa.jpf.jdart.ConcolicUtil;
+import gov.nasa.jpf.jdart.objects.SymbolicNumber;
 import gov.nasa.jpf.vm.Instruction;
 import gov.nasa.jpf.vm.StackFrame;
 import gov.nasa.jpf.vm.ThreadInfo;
@@ -33,24 +35,40 @@ public class FSUB extends gov.nasa.jpf.jvm.bytecode.FSUB {
 
   @Override
   public Instruction execute (ThreadInfo ti) {
-		StackFrame sf = ti.getTopFrame();
-    
-		if(sf.getOperandAttr(0) ==null && sf.getOperandAttr(1)==null) {
-			return super.execute(ti); 
-    } 
-    
-	  ConcolicUtil.Pair<Float> right = ConcolicUtil.popFloat(sf);
-	  ConcolicUtil.Pair<Float> left = ConcolicUtil.popFloat(sf);
+    StackFrame sf = ti.getTopFrame();
+
+    Object rightO = sf.getOperandAttr(0);
+    Object leftO = sf.getOperandAttr(1);
+    if (rightO == null && leftO == null) {
+      return super.execute(ti);
+    }
+
+    ConcolicUtil.Pair<Float> right = ConcolicUtil.popFloat(sf);
+    ConcolicUtil.Pair<Float> left = ConcolicUtil.popFloat(sf);
+
+    Expression leftSymb = left.symb;
+    Expression rightSymb = right.symb;
+
+    if (leftO instanceof SymbolicNumber) {
+      SymbolicNumber sn = (SymbolicNumber) leftO;
+      leftSymb = sn.symbolicNumber;
+    }
+    if (rightO instanceof SymbolicNumber) {
+      SymbolicNumber sn = (SymbolicNumber) rightO;
+      rightSymb = sn.symbolicNumber;
+    }
 
     NumericCompound<Float> symb = new NumericCompound<Float>(
-            left.symb, NumericOperator.MINUS, right.symb);    
-    
-    float conc = left.conc - right.conc;    
-    
+        leftSymb, NumericOperator.MINUS, rightSymb);
+
+    float conc = left.conc - right.conc;
+
     ConcolicUtil.Pair<Float> result = new ConcolicUtil.Pair<Float>(conc, symb);
     ConcolicUtil.pushFloat(result, sf);
 
-    if (ConcolicInstructionFactory.DEBUG) ConcolicInstructionFactory.logger.finest("Execute FSUB: " + result);		
+    if (ConcolicInstructionFactory.DEBUG) {
+      ConcolicInstructionFactory.logger.finest("Execute FSUB: " + result);
+    }
     return getNext(ti);
   }
 }

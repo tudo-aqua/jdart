@@ -41,7 +41,6 @@ import gov.nasa.jpf.vm.DynamicElementInfo;
 import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.MJIEnv;
 import gov.nasa.jpf.vm.ThreadInfo;
-
 import java.math.BigInteger;
 
 
@@ -64,15 +63,20 @@ public class SMTLibStringModel {
 			if (symbolicSelf == null) {
 				ConcolicUtil.Pair<String> newSelf = analysis.getOrCreateSymbolicString();
 				symbolicSelf =
-						new SymbolicSMTString((Variable<String>) newSelf.symb, Constant.create(BuiltinTypes.STRING, concreteSelf));
+						new SymbolicSMTString((Variable<String>) newSelf.symb,
+								Constant.create(BuiltinTypes.STRING, concreteSelf));
 			}
 			if (symbolicPrefix == null) {
 				ConcolicUtil.Pair<String> newPrefix = analysis.getOrCreateSymbolicString();
 				symbolicPrefix = new SymbolicSMTString((Variable<String>) newPrefix.symb,
-																							 Constant.create(BuiltinTypes.STRING, concretePrefix));
+						Constant.create(BuiltinTypes.STRING, concretePrefix));
 			}
 			Expression startWith =
-					StringBooleanExpression.createPrefixOf(symbolicPrefix.symbolicValue, symbolicSelf.symbolicValue);
+					StringBooleanExpression
+							.createPrefixOf(symbolicPrefix.symbolicValue, symbolicSelf.symbolicValue);
+			analysis.decision(env.getThreadInfo(), null, concreteRes ? 0 : 1, startWith,
+					Negation.create(startWith));
+
 			env.setReturnAttribute(startWith);
 		}
 		return concreteRes;
@@ -107,7 +111,7 @@ public class SMTLibStringModel {
 		SymbolicSMTString symb = ei.getObjectAttr(SymbolicSMTString.class);
 		if (symb != null) {
 			StringIntegerExpression strLength = StringIntegerExpression.createLength(symb.strVar);
-			env.setReturnAttribute(strLength);
+			env.setReturnAttribute(CastExpression.create(strLength, BuiltinTypes.SINT32));
 		}
 		String concreteString = ei.asString();
 		return concreteString.length();

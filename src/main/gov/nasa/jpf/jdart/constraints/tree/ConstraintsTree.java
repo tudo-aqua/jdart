@@ -27,9 +27,7 @@ import gov.nasa.jpf.jdart.config.ConcolicConfig;
 import gov.nasa.jpf.jdart.config.ConcolicValues;
 import gov.nasa.jpf.jdart.constraints.paths.PathResult;
 import gov.nasa.jpf.util.JPFLogger;
-import gov.nasa.jpf.util.Pair;
 import gov.nasa.jpf.vm.Instruction;
-
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;

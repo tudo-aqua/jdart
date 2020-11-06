@@ -20,7 +20,6 @@ import gov.nasa.jpf.jdart.objects.SymbolicSMTString;
 import gov.nasa.jpf.jdart.peers.JPF_java_lang_StringBuilder;
 import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.MJIEnv;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 
@@ -62,20 +61,25 @@ public class SMTLibStringBuilderModel {
 			ConcolicUtil.Pair<String> newSymbolicString = ca.getOrCreateSymbolicString();
 			String value = new String(values, 0, count);
 			symbSB =
-					new SymbolicSMTString((Variable<String>) newSymbolicString.symb, Constant.create(BuiltinTypes.STRING,
-																																													 value));
+					new SymbolicSMTString((Variable<String>) newSymbolicString.symb,
+							Constant.create(BuiltinTypes.STRING,
+									value));
+		}
+		if (symbParam == null && symbSB != null) {
+			symbParam = new SymbolicSMTString(null, Constant.create(BuiltinTypes.STRING, ei.asString()));
 		}
 
-		int concreteResultRef = peer.super_append__Ljava_lang_String_2__Ljava_lang_StringBuilder_2(env, objref, sref);
+		int concreteResultRef = peer
+				.super_append__Ljava_lang_String_2__Ljava_lang_StringBuilder_2(env, objref, sref);
 
 		//test for symbolic string
 		if (symbParam != null) {
 
-
-			Expression<String> concat = StringCompoundExpression.createConcat(symbSB.symbolicValue, symbParam.symbolicValue);
+			Expression<String> concat = StringCompoundExpression
+					.createConcat(symbSB.symbolicValue, symbParam.symbolicValue);
 			ConcolicUtil.Pair<String> newSymbolicString = ca.getOrCreateSymbolicString();
 			symbSB = new SymbolicSMTString((Variable<String>) newSymbolicString.symb, concat);
-			env.addObjectAttr(concreteResultRef, symbSB);
+			env.addObjectAttr(objref, symbSB);
 		}
 		return concreteResultRef;
 	}
@@ -97,13 +101,16 @@ public class SMTLibStringBuilderModel {
 			ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
 			Expression strLen = StringIntegerExpression.createLength(symbolic.symbolicValue);
 			Expression indexWithinBounds =
-					new PropositionalCompound(new NumericBooleanExpression(new Constant<Integer>(BuiltinTypes.SINT32, index),
-																																 NumericComparator.LT,
-																																 strLen),
-																		LogicalOperator.AND,
-																		new NumericBooleanExpression(new Constant<Integer>(BuiltinTypes.SINT32, 0),
-																																 NumericComparator.LT,
-																																 strLen));
+					new PropositionalCompound(
+							new NumericBooleanExpression(new Constant<BigInteger>(BuiltinTypes.INTEGER,
+									BigInteger.valueOf(index)),
+									NumericComparator.LT,
+									strLen),
+							LogicalOperator.AND,
+							new NumericBooleanExpression(
+									new Constant<BigInteger>(BuiltinTypes.INTEGER, BigInteger.valueOf(0)),
+									NumericComparator.LT,
+									strLen));
 			if (!(index >= 0 && index < values.length)) {
 				ca.decision(env.getThreadInfo(), null, 1, indexWithinBounds, new Negation(indexWithinBounds));
 
@@ -205,10 +212,11 @@ public class SMTLibStringBuilderModel {
 			for (int i = 0; i + start < end; i++) {
 				ConcolicUtil.Pair<String> newChar = ca.getOrCreateSymbolicString();
 				symbolicChars[dest_start + i] = new SymbolicSMTString((Variable<String>) newChar.symb,
-																															StringCompoundExpression.createAt(symbolic.symbolicValue,
-																																																Constant.create(
-																																																		BuiltinTypes.SINT32,
-																																																		i + start)));
+						StringCompoundExpression.createAt(symbolic.symbolicValue,
+								Constant.create(
+										BuiltinTypes.SINT32,
+										i + start)));
+				eiCA.setElementAttr(dest_start + i, symbolicChars[dest_start + i]);
 			}
 			eiCA.addObjectAttr(symbolicChars);
 		}

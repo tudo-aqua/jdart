@@ -101,4 +101,19 @@ public class JPF_java_util_Random extends gov.nasa.jpf.vm.JPF_java_util_Random {
 		env.setReturnAttribute(result.symb);
 		return result.conc;
 	}
+
+	@MJI
+	@SymbolicPeer
+	@Override
+	public float nextFloat____F(MJIEnv env, int objRef) {
+		ThreadInfo ti = env.getThreadInfo();
+		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+		if (ca == null) {
+			return (float) Math.random();
+		}
+
+		ConcolicUtil.Pair<Float> result = ca.getOrCreateSymbolicFloat();
+		env.setReturnAttribute(result.symb);
+		return result.conc;
+	}
 }

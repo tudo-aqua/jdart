@@ -15,9 +15,16 @@
  */
 package gov.nasa.jpf.jdart.bytecode;
 
+import static gov.nasa.jpf.constraints.expressions.NumericComparator.EQ;
+
+import gov.nasa.jpf.constraints.expressions.Constant;
+import gov.nasa.jpf.constraints.expressions.Negation;
+import gov.nasa.jpf.constraints.expressions.NumericBooleanExpression;
 import gov.nasa.jpf.constraints.expressions.NumericCompound;
 import gov.nasa.jpf.constraints.expressions.NumericOperator;
+import gov.nasa.jpf.constraints.types.BuiltinTypes;
 import gov.nasa.jpf.jdart.ConcolicInstructionFactory;
+import gov.nasa.jpf.jdart.ConcolicMethodExplorer;
 import gov.nasa.jpf.jdart.ConcolicUtil;
 import gov.nasa.jpf.vm.Instruction;
 import gov.nasa.jpf.vm.StackFrame;
@@ -32,25 +39,32 @@ public class DDIV extends gov.nasa.jpf.jvm.bytecode.DDIV  {
 
   @Override
 	public Instruction execute (ThreadInfo ti) {
-		StackFrame sf = ti.getTopFrame();
-    
+    StackFrame sf = ti.getTopFrame();
+
     if (sf.getOperandAttr(1) == null && sf.getOperandAttr(3) == null) {
       return super.execute(ti);
     }
-    
-	  ConcolicUtil.Pair<Double> right = ConcolicUtil.popDouble(sf);
-	  ConcolicUtil.Pair<Double> left = ConcolicUtil.popDouble(sf);
+
+    ConcolicUtil.Pair<Double> right = ConcolicUtil.popDouble(sf);
+    ConcolicUtil.Pair<Double> left = ConcolicUtil.popDouble(sf);
+
+    ConcolicMethodExplorer analysis = ConcolicMethodExplorer.getCurrentAnalysis(ti);
+    NumericBooleanExpression expr = NumericBooleanExpression.create(right.symb, EQ, Constant.create(
+        BuiltinTypes.DOUBLE, 0.0));
+    analysis.decision(ti, null, right.conc == 0.0 ? 0 : 1, expr, Negation.create(expr));
 
     NumericCompound<Double> symb = new NumericCompound<Double>(
-            left.symb, NumericOperator.DIV, right.symb);    
-    
-    double conc = left.conc / right.conc;    
-    
+        left.symb, NumericOperator.DIV, right.symb);
+
+    double conc = left.conc / right.conc;
+
     ConcolicUtil.Pair<Double> result = new ConcolicUtil.Pair<Double>(conc, symb);
     ConcolicUtil.pushDouble(result, sf);
 
-    if (ConcolicInstructionFactory.DEBUG) ConcolicInstructionFactory.logger.finest("Execute DDIV: " + result);		
-    return getNext(ti);            
-	}
+    if (ConcolicInstructionFactory.DEBUG) {
+      ConcolicInstructionFactory.logger.finest("Execute DDIV: " + result);
+    }
+    return getNext(ti);
+  }
 }
 

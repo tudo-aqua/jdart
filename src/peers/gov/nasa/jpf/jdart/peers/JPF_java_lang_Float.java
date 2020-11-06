@@ -41,6 +41,7 @@ public class JPF_java_lang_Float extends gov.nasa.jpf.vm.JPF_java_lang_Float {
 		ca.decision(env.getThreadInfo(), null, error.conc ? 0 : 1, errorExp, new Negation(errorExp));
 		if (error.conc) {
 			env.getThreadInfo().createAndThrowException("java.lang.NumberFormatException");
+			return MJIEnv.NULL;
 		}
 
 		ConcolicUtil.Pair<Float> symbolicFloat = ca.getOrCreateSymbolicFloat();
