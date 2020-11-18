@@ -23,6 +23,7 @@ import gov.nasa.jpf.constraints.api.SolverContext;
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.constraints.api.ValuationEntry;
 import gov.nasa.jpf.constraints.api.Variable;
+import gov.nasa.jpf.constraints.exceptions.EvaluationException;
 import gov.nasa.jpf.constraints.exceptions.ImpreciseRepresentationException;
 import gov.nasa.jpf.constraints.java.ObjectConstraints;
 import gov.nasa.jpf.constraints.parser.ParserUtil;
@@ -34,10 +35,10 @@ import gov.nasa.jpf.jdart.config.ConcolicConfig;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
 import gov.nasa.jpf.jdart.config.ConcolicValues;
 import gov.nasa.jpf.jdart.config.ParamConfig;
-import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
-import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree.BranchEffect;
 import gov.nasa.jpf.jdart.constraints.paths.PathResult;
 import gov.nasa.jpf.jdart.constraints.paths.PostCondition;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree.BranchEffect;
 import gov.nasa.jpf.jdart.objects.SymbolicObjectsContext;
 import gov.nasa.jpf.jdart.termination.TerminateOnAssertionError;
 import gov.nasa.jpf.jdart.termination.TerminationStrategy;
@@ -51,12 +52,12 @@ import gov.nasa.jpf.vm.StackFrame;
 import gov.nasa.jpf.vm.ThreadInfo;
 import gov.nasa.jpf.vm.Types;
 import gov.nasa.jpf.vm.UncaughtException;
-import org.antlr.runtime.RecognitionException;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import org.antlr.runtime.RecognitionException;
 
 /**
  *
@@ -257,9 +258,8 @@ public class ConcolicMethodExplorer {
 	/**
 	 * registers method for concolic execution. Puts symbolic input values onto the stack ...
 	 *
-	 * @param invokeInstruction
-	 * @param systemState
 	 * @param ti
+	 * @param sf
 	 */
 	public void initializeMethod(ThreadInfo ti, StackFrame sf) {
 		logger.finest("Initializing concolic execution of " + methodInfo.getFullName());
@@ -486,101 +486,114 @@ public class ConcolicMethodExplorer {
 
 	public Pair<Integer> getOrCreateSymbolicInt() {
 		Variable var = new Variable(BuiltinTypes.SINT32, "_int" + count++);
-		Integer val = (Integer) currValuation.getValue(var);
-		if (val == null) {
-			val = 0;
+		Integer val;
+		try {
+			val = (Integer) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Integer) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Integer> getOrCreateSymbolicInt8() {
 		Variable var = new Variable(BuiltinTypes.SINT8, "_int" + count++);
-		Integer val = ((Byte) currValuation.getValue(var)).intValue();
-		if (val == null) {
-			val = 0;
+		Integer val;
+		try {
+			val = ((Byte) currValuation.getValue(var)).intValue();
+		} catch (EvaluationException e) {
+			val = (Integer) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<String> getOrCreateSymbolicString() {
 		Variable var = new Variable(BuiltinTypes.STRING, "_string" + count++);
-		String val = ((String) currValuation.getValue(var));
-		if (val == null) {
-			val = "";
+		String val;
+		try {
+			val = ((String) currValuation.getValue(var));
+		} catch (EvaluationException e) {
+			val = (String) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Boolean> getOrCreateSymbolicBoolean() {
 		Variable var = new Variable(BuiltinTypes.BOOL, "_bool" + count++);
-		Boolean val = (Boolean) currValuation.getValue(var);
-		if (val == null) {
-			val = false;
+		Boolean val;
+		try {
+			val = (Boolean) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Boolean) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Byte> getOrCreateSymbolicByte() {
 		Variable var = new Variable(BuiltinTypes.SINT8, "_byte" + byteCount++);
-		Byte val = (Byte) currValuation.getValue(var);
-		if (val == null) {
-			val = 0;
+		Byte val;
+		try {
+			val = (Byte) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Byte) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Character> getOrCreateSymbolicChar() {
 		Variable var = new Variable(BuiltinTypes.UINT16, "_char" + byteCount++);
-		Character val = (Character) currValuation.getValue(var);
-		if (val == null) {
-			val = 0;
+		Character val;
+		try {
+			val
+					= (Character) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Character) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Float> getOrCreateSymbolicFloat() {
 		Variable var = new Variable(BuiltinTypes.FLOAT, "_float" + count++);
-		Float val = (Float) currValuation.getValue(var);
-		if (val == null) {
-			val = 0f;
+		Float val;
+		try {
+			val = (Float) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Float) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Double> getOrCreateSymbolicDouble() {
 		Variable var = new Variable(BuiltinTypes.DOUBLE, "_double" + count++);
-		Double val = (Double) currValuation.getValue(var);
-		if (val == null) {
-			val = 0.0;
+		Double val;
+		try {
+			val = (Double) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Double) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Long> getOrCreateSymbolicLong() {
 		Variable var = new Variable(BuiltinTypes.SINT64, "_long" + count++);
-		Long val = (Long) currValuation.getValue(var);
-		if (val == null) {
-			val = 0l;
+		Long val;
+		try {
+			val = (Long) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Long) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public ConcolicConfig.StringModel getStringModel() {
 		return sm;
 	}
-
-	// LEGACY API
-
-	/*
-	@Deprecated
-	public ConstraintsTree getConstraintsTree() {
-		return constraintsTree.toFinalCTree();
-	}
-
-	@Deprecated
-	public Valuation getOriginalInitialValuation() {
-		return initValuation;
-	}
-
-	 */
 }
