@@ -21,7 +21,6 @@ import gov.nasa.jpf.JPF;
 import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.SolverContext;
 import gov.nasa.jpf.constraints.api.Valuation;
-import gov.nasa.jpf.constraints.api.ValuationEntry;
 import gov.nasa.jpf.constraints.api.Variable;
 import gov.nasa.jpf.constraints.exceptions.EvaluationException;
 import gov.nasa.jpf.constraints.exceptions.ImpreciseRepresentationException;
@@ -239,15 +238,7 @@ public class ConcolicMethodExplorer {
 		if (nextValuation == null) {
 			nextValuation = constraintsTree.findNext();
 		}
-
-		if (nextValuation != null) {
-			for (Variable v : currValuation.getVariables()) {
-				if (!nextValuation.containsValueFor(v)) {
-					nextValuation.addEntry(new ValuationEntry(v, nextValuation.getValue(v))); // returns the default
-					// value for this type
-				}
-			}
-		}
+		
 		currValuation = nextValuation;
 		nextValuation = null;
 
