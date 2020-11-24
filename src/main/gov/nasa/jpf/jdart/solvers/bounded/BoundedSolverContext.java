@@ -5,14 +5,15 @@ import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.SolverContext;
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.constraints.util.ExpressionUtil;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 
 public class BoundedSolverContext extends SolverContext {
 
 	private static class StackElement {
+
 		final ArrayList<Expression<Boolean>> exprsn = new ArrayList<>();
 	}
 
@@ -22,7 +23,7 @@ public class BoundedSolverContext extends SolverContext {
 
 	private final int itr;
 
-	private final ArrayList<StackElement> dkStack = new ArrayList<>();
+	private final Stack<StackElement> dkStack = new Stack<>();
 
 	private StackElement current;
 	private BoundedSolver solver;
@@ -37,14 +38,14 @@ public class BoundedSolverContext extends SolverContext {
 	@Override
 	public void push() {
 		ctx.push();
+		dkStack.push(current);
 		current = new StackElement();
-		dkStack.add(current);
 	}
 
 	@Override
 	public void pop(int n) {
 		for (int i = 0; i < n; i++) {
-			current = dkStack.remove(dkStack.size() - 1);
+			current = dkStack.pop();
 		}
 		ctx.pop(n);
 	}
@@ -72,7 +73,9 @@ public class BoundedSolverContext extends SolverContext {
 
 		Expression all = ExpressionUtil.and(current.exprsn);
 		for (StackElement s : dkStack) {
-			all = ExpressionUtil.and(all, ExpressionUtil.and(s.exprsn));
+			if (s != null) {
+				all = ExpressionUtil.and(all, ExpressionUtil.and(s.exprsn));
+			}
 		}
 
 		Result res = null;
