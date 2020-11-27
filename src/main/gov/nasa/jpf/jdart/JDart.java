@@ -129,6 +129,9 @@ public class JDart implements JPFShell {
   @Override
   public void start(String[] strings) {
     run();
+    // FIXME: The portfoliosolver does not exit gracefully due to a threadpool.
+    // But we can ensure ressources are cleaned up nicely.
+    System.exit(0);
   }
 
   /**
