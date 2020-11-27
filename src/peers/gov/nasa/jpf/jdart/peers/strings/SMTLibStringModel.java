@@ -127,47 +127,62 @@ public class SMTLibStringModel {
 		SymbolicSMTString symb = env.getObjectAttr(objRef, SymbolicSMTString.class);
 		Expression symbIndex = null;
 
-		if (env.getArgAttributes() != null) {
-			symbIndex = (Expression) env.getArgAttributes()[1];
+		if (env.getArgAttributes() != null && env.getArgAttributes()[1] != null) {
+			Object[] attrs = env.getArgAttributes();
+			symbIndex = (Expression) attrs[1];
+			if (!symbIndex.getType().equals(BuiltinTypes.SINT32)) {
+				symbIndex = CastExpression.create(symbIndex, BuiltinTypes.SINT32);
+			}
 		}
 		if (analysis == null || (symb == null && symbIndex == null)) {
 			return peer.super_charAt__I__C(env, objRef, index);
 		}
-		Expression length = (symb != null) ?
-				CastExpression.create(StringIntegerExpression.createLength(symb.strVar), BuiltinTypes.SINT32) :
+
+		boolean isSymbIndex = symbIndex != null;
+		if (!isSymbIndex) {
+			symbIndex = new Constant(BuiltinTypes.SINT32, index);
+		}
+
+		Expression length = (symb != null) ? CastExpression
+				.create(StringIntegerExpression.createLength(symb.symbolicValue), BuiltinTypes.SINT32) :
 				null;
 		if (length == null) {
 			length = new Constant(BuiltinTypes.SINT32, eiThis.length());
 		}
-		if (symbIndex == null) {
-			symbIndex = new Constant(BuiltinTypes.SINT32, index);
+
+		Expression constraint1 = new NumericBooleanExpression(
+				new Constant<>(BuiltinTypes.SINT32, 0),
+				NumericComparator.LE,
+				symbIndex);
+		Expression constraint2 = new NumericBooleanExpression(symbIndex, NumericComparator.LT, length);
+
+		boolean sat1 = (0 <= index);
+		boolean sat2 = (index < eiThis.length());
+		if (!sat1 && !isSymbIndex) {
+			env.throwException("java.lang.StringIndexOutOfBoundsException",
+					"String index out of range: " + index);
+			return MJIEnv.NULL;
+		} else if (isSymbIndex) {
+			analysis.decision(env.getThreadInfo(), null, sat1 ? 0 : 1, constraint1,
+					new Negation(constraint1));
 		}
-		Expression constraint = ExpressionUtil.and(new NumericBooleanExpression(new Constant<>(BuiltinTypes.SINT32, 0),
-																																						NumericComparator.LE,
-																																						symbIndex),
-																							 new NumericBooleanExpression(symbIndex, NumericComparator.LT, length));
+		analysis.decision(ti, null, sat2 ? 0 : 1, constraint2, new Negation(constraint2));
 
-		boolean sat = (0 <= index) && (index < eiThis.length());
-		int branchIdx = sat ? 0 : 1;
-		analysis.decision(ti, null, branchIdx, constraint, new Negation(constraint));
-
-		try {
+		char[] data = env.getStringChars(objRef);
+		if (index >= 0 && index < data.length) {
 			if (symb == null) {
 				throw new UnsupportedOperationException("We need to compute a valueSet in this case");
 			}
 
-			StringCompoundExpression charAt = StringCompoundExpression.createAt(symb.symbolicValue, symbIndex);
+			StringCompoundExpression charAt = StringCompoundExpression
+					.createAt(symb.symbolicValue, symbIndex);
 			Variable<String> newStrVar = (Variable<String>) analysis.getOrCreateSymbolicString().symb;
-			StringBooleanExpression assignment = StringBooleanExpression.createEquals(newStrVar, charAt);
-			analysis.decision(ti, null, 0, assignment);
-			char res = peer.super_charAt__I__C(env, objRef, index);
-			env.setReturnAttribute(new SymbolicSMTString(newStrVar, newStrVar));
-			return res;
+			env.setReturnAttribute(new SymbolicSMTString(newStrVar, charAt));
+			return data[index];
 		}
-		catch (ArrayIndexOutOfBoundsException e) {
-			env.throwException(ArrayIndexOutOfBoundsException.class.getName(), e.getMessage());
-			return MJIEnv.NULL;
-		}
+		env.throwException("java.lang.StringIndexOutOfBoundsException",
+				"String index out of range: " + index);
+		return MJIEnv.NULL;
 	}
 
 	@MJI
@@ -622,8 +637,8 @@ public class SMTLibStringModel {
 		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(ti);
 		boolean upperOBound = (ooffset + len) > olen;
 		Expression upperOBoundE = new NumericBooleanExpression(oSymLen,
-																													 NumericComparator.LT,
-																													 new Constant(BuiltinTypes.INTEGER, (ooffset + len)));
+				NumericComparator.LT,
+				new Constant(BuiltinTypes.INTEGER, BigInteger.valueOf(ooffset + len)));
 
 		boolean lowerOBound = (ooffset + len) < 0;
 
@@ -631,8 +646,8 @@ public class SMTLibStringModel {
 
 		boolean upperTBound = (toffset + len) > tlen;
 		Expression upperTBoundE = new NumericBooleanExpression(tSymLen,
-																													 NumericComparator.LT,
-																													 new Constant(BuiltinTypes.INTEGER, (toffset + len)));
+				NumericComparator.LT,
+				new Constant(BuiltinTypes.INTEGER, BigInteger.valueOf(toffset + len)));
 		Expression check0 = ExpressionUtil.and(upperOBoundE, upperTBoundE);
 		Expression check1 = ExpressionUtil.and(upperOBoundE, new Negation(upperTBoundE));
 		Expression check2 = ExpressionUtil.and(new Negation(upperOBoundE), upperTBoundE);

@@ -24,27 +24,61 @@ public class PortfolioSolver extends ConstraintSolver {
   private List<ConstraintSolver> processWrappedSolvers;
   private List<ConstraintSolver> directSolvers;
   private ExecutorService exec;
-
+  private boolean isProcessSolverDisabled = false;
 
   public PortfolioSolver(Properties properties) {
     processWrappedSolvers = new LinkedList();
     directSolvers = new LinkedList<>();
     resolveSolvers(properties);
-    exec = Executors.newFixedThreadPool(processWrappedSolvers.size());
+    exec = null;
+  }
+
+  public static Result processResult(
+      int maxSolvers, ExecutorCompletionService ecs, Valuation valuation) {
+    for (int i = 0; i < maxSolvers; i++) {
+      try {
+        Future<SolvingResult> solverRes = ecs.take();
+        if (solverRes.isDone()) {
+          SolvingResult solvingRes = solverRes.get();
+          Result res = solvingRes.getResult();
+          if (!res.equals(Result.DONT_KNOW)) {
+            if (res.equals(Result.SAT)) {
+              for (ValuationEntry e : solvingRes.getVal().entries()) {
+                valuation.addEntry(e);
+              }
+            }
+            return res;
+          }
+        }
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      } catch (ExecutionException e) {
+        e.printStackTrace();
+      }
+    }
+    return Result.DONT_KNOW;
   }
 
   @Override
   public Result solve(Expression<Boolean> expression, Valuation valuation) {
     StringOrFloatExpressionVisitor visitor = new StringOrFloatExpressionVisitor();
     boolean isStringOrFloatExpression = expression.accept(visitor, null);
-    if (isStringOrFloatExpression) {
+    if (!isProcessSolverDisabled && isStringOrFloatExpression) {
       List<ConstraintSolver> solvers = new LinkedList<>();
       for (ConstraintSolver solver : processWrappedSolvers) {
         if (solver.getName().equalsIgnoreCase("cvc4")) {
           solvers.add(solver);
         }
       }
-      return dispatcheProcessWrappedSolvers(expression, valuation, solvers);
+      Result res = dispatcheProcessWrappedSolvers(expression, valuation, solvers);
+      if (!res.equals(Result.DONT_KNOW)) {
+        return res;
+      } else {
+        isProcessSolverDisabled = true;
+        System.out.println("Disable process solver and shutdown exec");
+        exec.shutdownNow();
+        return solve(expression, valuation);
+      }
     } else {
       for (ConstraintSolver solver : directSolvers) {
         if (solver.getName().equalsIgnoreCase("z3")) {
@@ -54,7 +88,6 @@ public class PortfolioSolver extends ConstraintSolver {
     }
     throw new IllegalArgumentException("Cannot run the problem with the provided solvers");
   }
-
 
   @Override
   public SolverContext createContext() {
@@ -70,17 +103,20 @@ public class PortfolioSolver extends ConstraintSolver {
     return new PortfolioSolverContext(ctxs, direct);
   }
 
-  private Result dispatcheProcessWrappedSolvers(Expression<Boolean> expression,
-      Valuation valuation,
-      List<ConstraintSolver> solvers) {
+  private Result dispatcheProcessWrappedSolvers(
+      Expression<Boolean> expression, Valuation valuation, List<ConstraintSolver> solvers) {
     List<Runnable> calls = new LinkedList<>();
+    if (exec == null) {
+      exec = Executors.newFixedThreadPool(processWrappedSolvers.size());
+    }
     ExecutorCompletionService ecs = new ExecutorCompletionService(exec);
     for (ConstraintSolver solver : solvers) {
-      ecs.submit(() -> {
-        Valuation val = new Valuation();
-        Result res = solver.solve(expression, val);
-        return new SolvingResult(res, val);
-      });
+      ecs.submit(
+          () -> {
+            Valuation val = new Valuation();
+            Result res = solver.solve(expression, val);
+            return new SolvingResult(res, val);
+          });
     }
     return processResult(solvers.size(), ecs, valuation);
   }
@@ -95,27 +131,5 @@ public class PortfolioSolver extends ConstraintSolver {
         directSolvers.add(csf.createSolver(solverName));
       }
     }
-  }
-
-  public static Result processResult(int maxSolvers, ExecutorCompletionService ecs,
-      Valuation valuation) {
-    for (int i = 0; i < maxSolvers; i++) {
-      try {
-        Future<SolvingResult> solverRes = ecs.take();
-        if (solverRes.isDone() && !solverRes.get().getResult().equals(Result.DONT_KNOW)) {
-          if (solverRes.get().getResult().equals(Result.SAT)) {
-            for (ValuationEntry e : solverRes.get().getVal().entries()) {
-              valuation.addEntry(e);
-            }
-          }
-          return solverRes.get().getResult();
-        }
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      } catch (ExecutionException e) {
-        e.printStackTrace();
-      }
-    }
-    return Result.DONT_KNOW;
   }
 }

@@ -91,6 +91,7 @@ public class SMTLibStringBuilderModel {
 
 		int field = env.getReferenceField(objref, "value");
 		char[] values = env.getCharArrayObject(field);
+		int length = env.getIntField(objref, "count");
 		Object[] attrs = env.getArgAttributes();
 		if (attrs != null && attrs[1] != null) {
 			//Expect index to be concrete for now.
@@ -103,7 +104,7 @@ public class SMTLibStringBuilderModel {
 			Expression indexWithinBounds =
 					new PropositionalCompound(
 							new NumericBooleanExpression(new Constant<BigInteger>(BuiltinTypes.INTEGER,
-									BigInteger.valueOf(index)),
+									BigInteger.valueOf(index + 1)),
 									NumericComparator.LT,
 									strLen),
 							LogicalOperator.AND,
@@ -111,17 +112,20 @@ public class SMTLibStringBuilderModel {
 									new Constant<BigInteger>(BuiltinTypes.INTEGER, BigInteger.valueOf(0)),
 									NumericComparator.LT,
 									strLen));
-			if (!(index >= 0 && index < values.length)) {
-				ca.decision(env.getThreadInfo(), null, 1, indexWithinBounds, new Negation(indexWithinBounds));
+			if (!(index >= 0 && index < length)) {
+				ca.decision(env.getThreadInfo(), null, 1, indexWithinBounds,
+						new Negation(indexWithinBounds));
 
 				env.throwException("java.lang.IndexOutOfBoundsException");
+				return (char) 0;
 			} else {
-				ca.decision(env.getThreadInfo(), null, 0, indexWithinBounds, new Negation(indexWithinBounds));
+				ca.decision(env.getThreadInfo(), null, 0, indexWithinBounds,
+						new Negation(indexWithinBounds));
 				ConcolicUtil.Pair<String> newStrVar = ca.getOrCreateSymbolicString();
 				Constant cIndex = Constant.create(BuiltinTypes.SINT32, index);
 				SymbolicSMTString newStr = new SymbolicSMTString((Variable<String>) newStrVar.symb,
-																												 StringCompoundExpression.createAt(symbolic.symbolicValue,
-																																													 cIndex));
+						StringCompoundExpression.createAt(symbolic.symbolicValue,
+								cIndex));
 				env.setReturnAttribute(newStr);
 				return (char) values[index];
 			}
@@ -130,11 +134,9 @@ public class SMTLibStringBuilderModel {
 				return (char) values[index];
 			} else {
 				env.throwException("java.lang.IndexOutOfBoundsException");
+				return (char) 0;
 			}
 		}
-		//This is never executed, but the compiler doe nos recognise the env.throwException as an throw-Statement.
-		//Therefore the if is not exhaustive without this statement.
-		return (char) 0;
 	}
 
 	@MJI

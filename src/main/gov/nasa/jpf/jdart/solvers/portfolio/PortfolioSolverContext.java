@@ -17,11 +17,13 @@ public class PortfolioSolverContext extends SolverContext {
   private List<ProcessWrapperContext> solvers;
   private List<SolverContext> direct;
   private ExecutorService exec;
+  private boolean isProcessSolverDisabled;
 
   public PortfolioSolverContext(List<ProcessWrapperContext> ctxs, List<SolverContext> direct) {
     this.solvers = ctxs;
     this.direct = direct;
-    this.exec = Executors.newFixedThreadPool(ctxs.size());
+    this.exec = null;
+    this.isProcessSolverDisabled = false;
   }
 
   @Override
@@ -50,14 +52,24 @@ public class PortfolioSolverContext extends SolverContext {
     Expression expression = ctx.getCurrentExpression();
     StringOrFloatExpressionVisitor visitor = new StringOrFloatExpressionVisitor();
     boolean isStringOrFloatExpression = (Boolean) expression.accept(visitor, null);
-    if (isStringOrFloatExpression) {
+    if (!isProcessSolverDisabled && isStringOrFloatExpression) {
+      exec = Executors.newFixedThreadPool(solvers.size());
       List<SolverContext> wrappedCtxs = new LinkedList<>();
       for (ProcessWrapperContext solver : solvers) {
         if (solver.getName().equalsIgnoreCase("cvc4")) {
           wrappedCtxs.add(solver);
         }
       }
-      return dispatcheProcessWrappedSolvers(expression, valuation, wrappedCtxs);
+      Result res = dispatcheProcessWrappedSolvers(expression, valuation, wrappedCtxs);
+      if (!res.equals(Result.DONT_KNOW)) {
+        return res;
+      } else {
+        isProcessSolverDisabled = true;
+        System.out.println("Disable process solver and shutdown exec");
+        exec.shutdown();
+        exec = null;
+        return solve(valuation);
+      }
     } else {
       if (direct.size() == 1) {
         return direct.get(0).solve(valuation);
@@ -66,17 +78,17 @@ public class PortfolioSolverContext extends SolverContext {
     throw new IllegalArgumentException("Cannot run the problem with the provided solvers");
   }
 
-  public Result dispatcheProcessWrappedSolvers(Expression<Boolean> expression,
-      Valuation valuation,
-      List<SolverContext> solvers) {
+  public Result dispatcheProcessWrappedSolvers(
+      Expression<Boolean> expression, Valuation valuation, List<SolverContext> solvers) {
     List<Runnable> calls = new LinkedList<>();
     ExecutorCompletionService ecs = new ExecutorCompletionService(exec);
     for (SolverContext solver : solvers) {
-      ecs.submit(() -> {
-        Valuation val = new Valuation();
-        Result res = solver.solve(val);
-        return new SolvingResult(res, val);
-      });
+      ecs.submit(
+          () -> {
+            Valuation val = new Valuation();
+            Result res = solver.solve(val);
+            return new SolvingResult(res, val);
+          });
     }
     return PortfolioSolver.processResult(solvers.size(), ecs, valuation);
   }
@@ -86,12 +98,8 @@ public class PortfolioSolverContext extends SolverContext {
     for (SolverContext ctx : solvers) {
       ctx.add(list);
     }
-    Expression expr = solvers.get(0).getCurrentExpression();
-    StringOrFloatExpressionVisitor visitor = new StringOrFloatExpressionVisitor();
-    if (!(Boolean) expr.accept(visitor, null)) {
-      for (SolverContext ctx : direct) {
-        ctx.add(list);
-      }
+    for (SolverContext ctx : direct) {
+      ctx.add(list);
     }
   }
 
