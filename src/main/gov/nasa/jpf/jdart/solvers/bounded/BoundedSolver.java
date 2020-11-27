@@ -25,7 +25,7 @@ public class BoundedSolver extends ConstraintSolver {
   private final int fibonacci[] = {
     1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765
   };
-  private final int skipped[] = {5, 21};
+  private final int skipped[] = {2, 5, 21};
   BoundType type;
 
   public BoundedSolver(ConstraintSolver back, int bound, int itr, BoundType type) {
@@ -82,9 +82,11 @@ public class BoundedSolver extends ConstraintSolver {
         && ((StringIntegerExpression) e).getOperator().equals(StringIntegerOperator.LENGTH)) {
       return true;
     }
-    for (Expression child : e.getChildren()) {
-      if (hasStrLenExpr(child)) {
-        return true;
+    if (e.getChildren() != null) {
+      for (Expression child : e.getChildren()) {
+        if (hasStrLenExpr(child)) {
+          return true;
+        }
       }
     }
     return false;
@@ -115,7 +117,7 @@ public class BoundedSolver extends ConstraintSolver {
     if (type == BoundType.fibonacci) {
       resultingBound = fibonacci[index];
     } else if (type == BoundType.skipped) {
-      resultingBound = skipped[index];
+      resultingBound = skipped[index - 1];
     }
 
     return getBoundExpression(expr, resultingBound);

@@ -9,6 +9,12 @@ import gov.nasa.jpf.constraints.expressions.NumericBooleanExpression;
 import gov.nasa.jpf.constraints.expressions.NumericComparator;
 import gov.nasa.jpf.constraints.expressions.NumericCompound;
 import gov.nasa.jpf.constraints.expressions.NumericOperator;
+import gov.nasa.jpf.constraints.expressions.RegExBooleanExpression;
+import gov.nasa.jpf.constraints.expressions.RegexCompoundExpression;
+import gov.nasa.jpf.constraints.expressions.RegexOperatorExpression;
+import gov.nasa.jpf.constraints.expressions.StringBooleanExpression;
+import gov.nasa.jpf.constraints.expressions.StringCompoundExpression;
+import gov.nasa.jpf.constraints.expressions.StringIntegerExpression;
 import gov.nasa.jpf.constraints.types.BuiltinTypes;
 import gov.nasa.jpf.constraints.util.DuplicatingVisitor;
 
@@ -48,5 +54,36 @@ public class OptimizationVisitor extends DuplicatingVisitor<Boolean> {
       }
     }
     return duplicate;
+  }
+
+  // FIXME: Check Duplicating Visitor on String Expressions!
+  @Override
+  public Expression<?> visit(RegExBooleanExpression n, Boolean data) {
+    return n;
+  }
+
+  @Override
+  public Expression<?> visit(StringBooleanExpression n, Boolean data) {
+    return n;
+  }
+
+  @Override
+  public Expression<?> visit(StringIntegerExpression n, Boolean data) {
+    return n;
+  }
+
+  @Override
+  public Expression<?> visit(StringCompoundExpression n, Boolean data) {
+    return n;
+  }
+
+  @Override
+  public Expression<?> visit(RegexCompoundExpression n, Boolean data) {
+    return n;
+  }
+
+  @Override
+  public Expression<?> visit(RegexOperatorExpression n, Boolean data) {
+    return n;
   }
 }

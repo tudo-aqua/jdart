@@ -18,12 +18,14 @@ public class PortfolioSolverContext extends SolverContext {
   private List<SolverContext> direct;
   private ExecutorService exec;
   private boolean isProcessSolverDisabled;
+  private boolean isDirectBroken;
 
   public PortfolioSolverContext(List<ProcessWrapperContext> ctxs, List<SolverContext> direct) {
     this.solvers = ctxs;
     this.direct = direct;
     this.exec = null;
     this.isProcessSolverDisabled = false;
+    this.isDirectBroken = false;
   }
 
   @Override
@@ -61,14 +63,14 @@ public class PortfolioSolverContext extends SolverContext {
         }
       }
       Result res = dispatcheProcessWrappedSolvers(expression, valuation, wrappedCtxs);
-      if (!res.equals(Result.DONT_KNOW)) {
-        return res;
-      } else {
+      if (res.equals(Result.DONT_KNOW) && !isDirectBroken) {
         isProcessSolverDisabled = true;
         System.out.println("Disable process solver and shutdown exec");
         exec.shutdown();
         exec = null;
         return solve(valuation);
+      } else {
+        return res;
       }
     } else {
       if (direct.size() == 1) {
@@ -98,8 +100,12 @@ public class PortfolioSolverContext extends SolverContext {
     for (SolverContext ctx : solvers) {
       ctx.add(list);
     }
-    for (SolverContext ctx : direct) {
-      ctx.add(list);
+    try {
+      for (SolverContext ctx : direct) {
+        ctx.add(list);
+      }
+    } catch (RuntimeException e) {
+      isDirectBroken = true;
     }
   }
 

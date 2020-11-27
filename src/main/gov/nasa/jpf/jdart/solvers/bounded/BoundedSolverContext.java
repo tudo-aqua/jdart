@@ -76,21 +76,21 @@ public class BoundedSolverContext extends SolverContext {
       bounds.add(boundExpr);
       push();
       add(bounds);
-      // System.out.println("Try to solve: " + all + " with bounds: " + bounds);
+      //System.out.println("Try to solve: " + all + " with bounds: " + bounds);
       res = ctx.solve(vals);
-      // System.out.println("Result: " + res);
+      //System.out.println("Result: " + res);
       pop();
       if (res == Result.SAT) {
         return res;
       }
     }
     // FIXME: This should be logger.finer
-    // System.out.println("Try to solve: " + all + " without bounds");
+    //System.out.println("Try to solve: " + all + " without bounds");
     push();
     add(solver.getBoundAnalysisLimit(all));
     res = ctx.solve(vals);
     // FIXME: This should be logger.finer
-    // System.out.println("Result: " + res);
+    //System.out.println("Result: " + res);
     if (res.equals(Result.SAT)) {
       assert (Boolean) all.evaluate(vals);
     }
