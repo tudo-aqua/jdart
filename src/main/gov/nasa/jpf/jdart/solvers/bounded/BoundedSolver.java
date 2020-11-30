@@ -25,7 +25,7 @@ public class BoundedSolver extends ConstraintSolver {
   private final int fibonacci[] = {
       1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765
   };
-  private final int skipped[] = {2, 8, 13};
+  private final int skipped[] = {2, 8, 13, 21, 200, 600};
   BoundType type;
 
   public BoundedSolver(ConstraintSolver back, int bound, int itr, BoundType type) {
@@ -84,7 +84,7 @@ public class BoundedSolver extends ConstraintSolver {
     }
     if (e.getChildren() != null) {
       for (Expression child : e.getChildren()) {
-        if (hasStrLenExpr(child)) {
+        if (child != null && hasStrLenExpr(child)) {
           return true;
         }
       }
@@ -128,4 +128,5 @@ public class BoundedSolver extends ConstraintSolver {
     fibonacci,
     skipped
   }
+
 }

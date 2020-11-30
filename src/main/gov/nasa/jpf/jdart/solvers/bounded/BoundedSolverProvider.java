@@ -3,6 +3,7 @@ package gov.nasa.jpf.jdart.solvers.bounded;
 import gov.nasa.jpf.constraints.api.ConstraintSolver;
 import gov.nasa.jpf.constraints.solvers.ConstraintSolverFactory;
 import gov.nasa.jpf.constraints.solvers.ConstraintSolverProvider;
+import gov.nasa.jpf.jdart.solvers.bounded.BoundedSolver.BoundType;
 import java.util.Properties;
 
 public class BoundedSolverProvider implements ConstraintSolverProvider {
@@ -36,7 +37,7 @@ public class BoundedSolverProvider implements ConstraintSolverProvider {
 		}
 		if (config.containsKey("bounded.type") && config.getProperty("bounded.type")
 				.equals("skipped")) {
-			type = BoundedSolver.BoundType.fibonacci;
+			type = BoundType.skipped;
 		}
 
 		ConstraintSolver solver = ConstraintSolverFactory.getRootFactory().createSolver(dp, config);

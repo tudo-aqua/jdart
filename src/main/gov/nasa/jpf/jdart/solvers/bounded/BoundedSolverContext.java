@@ -50,6 +50,10 @@ public class BoundedSolverContext extends SolverContext {
   @Override
   public void add(List<Expression<Boolean>> list) {
     for (Expression<Boolean> e : list) {
+      FlattenArithmeticVisitor fav = new FlattenArithmeticVisitor();
+      //System.out.println("Old Expression: " + e);
+      e = (Expression<Boolean>) e.accept(fav, null);
+      //System.out.println("Flattened: " + e);
       ctx.add(e);
       current.exprsn.add(e);
     }
@@ -90,7 +94,7 @@ public class BoundedSolverContext extends SolverContext {
     add(solver.getBoundAnalysisLimit(all));
     res = ctx.solve(vals);
     // FIXME: This should be logger.finer
-    //System.out.println("Result: " + res);
+    //System.out.println("Result: " + res + "  " + vals);
     if (res.equals(Result.SAT)) {
       assert (Boolean) all.evaluate(vals);
     }
