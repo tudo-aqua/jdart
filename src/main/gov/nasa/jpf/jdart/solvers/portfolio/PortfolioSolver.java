@@ -123,10 +123,11 @@ public class PortfolioSolver extends ConstraintSolver {
 
   private void resolveSolvers(Properties properties) {
     String specifiedSolvers = properties.getProperty("jdart.portfolio.solvers", "");
+    String javaBinary = properties.getProperty("jdart.portfolio.java", "");
     ConstraintSolverFactory csf = ConstraintSolverFactory.getRootFactory();
     String[] solverNames = specifiedSolvers.split(",");
     for (String solverName : solverNames) {
-      processWrappedSolvers.add(new ProcessWrapperSolver(solverName));
+      processWrappedSolvers.add(new ProcessWrapperSolver(solverName, javaBinary));
       if (!solverName.equalsIgnoreCase("cvc4")) {
         directSolvers.add(csf.createSolver(solverName));
       }

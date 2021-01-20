@@ -49,7 +49,8 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 			case BVModel:
 				return bvStringPeer.init___3BII__Ljava_lang_String_2(env, objRef, bytesRef, offset, length);
 			case SMTLibModel:
-				return smtStringPeer.init___3BII__Ljava_lang_String_2(env, objRef, bytesRef, offset, length);
+				return smtStringPeer
+						.init___3BII__Ljava_lang_String_2(env, objRef, bytesRef, offset, length);
 			default:
 				throw new UnsupportedOperationException(errorMessage);
 		}
@@ -61,8 +62,25 @@ public class JPF_java_lang_String extends gov.nasa.jpf.vm.JPF_java_lang_String {
 
 	@MJI
 	@SymbolicPeer
+	@Override
+	public int lastIndexOf__I__I(MJIEnv env, int objRef, int c) {
+		ConcolicConfig.StringModel sm = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo())
+				.getStringModel();
+		switch (sm) {
+			case BVModel:
+				return bvStringPeer.lastIndexOf__I__I(env, objRef, c);
+			case SMTLibModel:
+				return smtStringPeer.lastIndexOf__I__I(env, objRef, c);
+			default:
+				throw new UnsupportedOperationException(errorMessage);
+		}
+	}
+
+	@MJI
+	@SymbolicPeer
 	public int length____I(MJIEnv env, int objRef) {
-		ConcolicConfig.StringModel sm = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo()).getStringModel();
+		ConcolicConfig.StringModel sm = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo())
+				.getStringModel();
 		switch (sm) {
 			case BVModel:
 				return bvStringPeer.length____I(env, objRef);

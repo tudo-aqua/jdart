@@ -42,7 +42,6 @@ import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.MJIEnv;
 import gov.nasa.jpf.vm.MethodInfo;
 import gov.nasa.jpf.vm.ThreadInfo;
-
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Set;
@@ -59,9 +58,6 @@ public class BitVectorStringModel {
 
 	}
 
-
-	@MJI
-	@SymbolicPeer
 	public int init___3BII__Ljava_lang_String_2(MJIEnv env, int objRef, int bytesRef, int offset, int length) {
 		ElementInfo eiSource = env.getElementInfo(bytesRef);
 		Expression symbLength = eiSource.getObjectAttr(Expression.class);
@@ -73,8 +69,6 @@ public class BitVectorStringModel {
 		return peer.super_init___3BII(env, objRef, bytesRef, offset, length);
 	}
 
-	@MJI
-	@SymbolicPeer
 	public int length____I(MJIEnv env, int objRef) {
 		ElementInfo ei = env.getElementInfo(objRef);
 		String concrete = ei.asString();
@@ -89,8 +83,6 @@ public class BitVectorStringModel {
 		return result;
 	}
 
-	@MJI
-	@SymbolicPeer
 	public char charAt__I__C(MJIEnv env, int objRef, int index) {
 		ThreadInfo ti = env.getThreadInfo();
 
@@ -285,15 +277,18 @@ public class BitVectorStringModel {
 		return newRes;
 	}
 
-	@MJI
-	@SymbolicPeer
+	public int lastIndexOf__I__I(MJIEnv env, int objref, int c) {
+		throw new UnsupportedOperationException(
+				"Not yet implemented: lastIndexOf in the BitvectorStringModel");
+	}
+
 	public boolean regionMatches__ZILjava_lang_String_2II__Z(MJIEnv env,
-																													 int objref,
-																													 boolean ignoreCase,
-																													 int toffset,
-																													 int otherString,
-																													 int ooffset,
-																													 int len) {
+			int objref,
+			boolean ignoreCase,
+			int toffset,
+			int otherString,
+			int ooffset,
+			int len) {
 
 		Object[] argAttrs = env.getArgAttributes();
 
@@ -366,8 +361,6 @@ public class BitVectorStringModel {
 
 	}
 
-	@MJI
-	@SymbolicPeer
 	public boolean contains__Ljava_lang_CharSequence_2__Z(MJIEnv env, int objRef, int charSequenceRef) {
 		ThreadInfo ti = env.getThreadInfo();
 
@@ -611,7 +604,6 @@ public class BitVectorStringModel {
 		return concreteResult;
 	}
 
-	@MJI
 	public static int local_valueOf__D__Ljava_lang_String_2(MJIEnv env, int objRef, double value) {
 		Object[] attrs = env.getArgAttributes();
 		String res = String.valueOf(value);
@@ -658,7 +650,6 @@ public class BitVectorStringModel {
 		return env.newString(res);
 	}
 
-	@MJI
 	public int substring__I__Ljava_lang_String_2(MJIEnv env, int objRef, int beginIndex) {
 		SymbolicBVString symbolicValue = env.getObjectAttr(objRef, SymbolicBVString.class);
 		if (symbolicValue == null) {
@@ -698,8 +689,6 @@ public class BitVectorStringModel {
 		return resValue;
 	}
 
-	@MJI
-	@SymbolicPeer
 	public int substring__II__Ljava_lang_String_2(MJIEnv env, int objRef, int beginIndex, int endIndex) {
 		SymbolicBVString symbolicValue = env.getObjectAttr(objRef, SymbolicBVString.class);
 		if (symbolicValue == null) {
@@ -739,8 +728,6 @@ public class BitVectorStringModel {
 		return resValue;
 	}
 
-	@MJI
-	@SymbolicPeer
 	public int split__Ljava_lang_String_2___3Ljava_lang_String_2(MJIEnv env, int objRef, int rString0) {
 		ConcolicMethodExplorer ca = ConcolicMethodExplorer.getCurrentAnalysis(env.getThreadInfo());
 		ElementInfo ei = env.getElementInfo(objRef);
