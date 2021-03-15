@@ -18,10 +18,6 @@ package gov.nasa.jpf.jdart.solvers.functions;
 import gov.nasa.jpf.constraints.api.ConstraintSolver;
 import gov.nasa.jpf.constraints.solvers.ConstraintSolverFactory;
 import gov.nasa.jpf.constraints.solvers.ConstraintSolverProvider;
-import gov.nasa.jpf.jdart.solvers.selective.CombinationFilter;
-import gov.nasa.jpf.jdart.solvers.selective.ExpressionFilter;
-import gov.nasa.jpf.jdart.solvers.selective.FloatConstantFilter;
-import gov.nasa.jpf.jdart.solvers.selective.FunctionFilter;
 import java.util.Properties;
 
 /**
@@ -61,7 +57,7 @@ public class FunctionSolverProvider implements ConstraintSolverProvider {
       inst = Boolean.parseBoolean(config.getProperty("functions.instantiate"));
     }   
     
-    ConstraintSolver solver = ConstraintSolverFactory.getRootFactory().createSolver(dp, config);
+    ConstraintSolver solver = (new ConstraintSolverFactory()).createSolver(dp, config);
     return new FunctionSolver(solver, dbounds, rbounds, defs, inst);
   }
 

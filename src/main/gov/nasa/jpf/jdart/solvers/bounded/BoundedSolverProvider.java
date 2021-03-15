@@ -40,7 +40,7 @@ public class BoundedSolverProvider implements ConstraintSolverProvider {
 			type = BoundType.skipped;
 		}
 
-		ConstraintSolver solver = ConstraintSolverFactory.getRootFactory().createSolver(dp, config);
+		ConstraintSolver solver = (new ConstraintSolverFactory()).createSolver(dp, config);
 		return new BoundedSolver(solver, bound, iter, type);
 	}
 }

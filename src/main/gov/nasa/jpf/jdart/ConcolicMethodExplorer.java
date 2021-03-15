@@ -56,7 +56,6 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.antlr.runtime.RecognitionException;
 
 /**
  *
@@ -238,7 +237,6 @@ public class ConcolicMethodExplorer {
 		if (nextValuation == null) {
 			nextValuation = constraintsTree.findNext();
 		}
-		
 		currValuation = nextValuation;
 		nextValuation = null;
 
@@ -282,12 +280,10 @@ public class ConcolicMethodExplorer {
 						ParserUtil.parseLogical(constraintStr, ObjectConstraints.getJavaTypes(), vlist);
 				try {
 					solverCtx.add(constrExpr);
-				}
-				catch (Exception ex) {
+				} catch (Exception ex) {
 					logger.severe("Could not add constraint to solver: ", ex);
 				}
-			}
-			catch (RecognitionException | ImpreciseRepresentationException ex) {
+			} catch (ImpreciseRepresentationException ex) {
 				logger.severe("Could not parse constraint: ", ex);
 			}
 		}
@@ -539,12 +535,10 @@ public class ConcolicMethodExplorer {
 		Variable var = new Variable(BuiltinTypes.UINT16, "_char" + byteCount++);
 		Character val;
 		try {
-			val
-					= (Character) currValuation.getValue(var);
+			val = (Character) currValuation.getValue(var);
 		} catch (EvaluationException e) {
 			val = (Character) var.getType().getDefaultValue();
 		}
-		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 

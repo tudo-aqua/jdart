@@ -26,7 +26,6 @@ import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.Variable;
 import gov.nasa.jpf.constraints.parser.ParserUtil;
 import java.lang.reflect.Type;
-import org.antlr.runtime.RecognitionException;
 
 /**
  *
@@ -42,11 +41,7 @@ public class VariableHandler implements
   @Override
   public Variable<?> deserialize(JsonElement je, Type type, JsonDeserializationContext jdc)
           throws JsonParseException {
-    try {
       Expression<Boolean> expr = ParserUtil.parseVariable(je.getAsJsonPrimitive().getAsString());
       return (Variable<?>) expr;
-    } catch (RecognitionException ex) {
-      throw new JsonParseException(ex);
-    }
   }
 }

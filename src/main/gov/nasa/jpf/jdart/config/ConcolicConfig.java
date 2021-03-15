@@ -26,7 +26,6 @@ import gov.nasa.jpf.jdart.ConcolicUtil;
 import gov.nasa.jpf.jdart.termination.NeverTerminate;
 import gov.nasa.jpf.jdart.termination.TerminationStrategy;
 import gov.nasa.jpf.util.JPFLogger;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -227,7 +226,8 @@ public class ConcolicConfig {
 	 */
 	private void initialize(Config conf) {
 		// create a constraint solver
-		ConstraintSolverFactory cFactory = new ConstraintSolverFactory(conf);
+		ConstraintSolverFactory cFactory = new ConstraintSolverFactory();
+		String cp = System.getProperty("java.class.path");
 		this.solver = cFactory.createSolver(conf);
 		this.stringModel = parseStringModel(conf);
 

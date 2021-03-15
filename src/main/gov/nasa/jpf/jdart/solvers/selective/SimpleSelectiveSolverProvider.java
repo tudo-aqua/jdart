@@ -46,7 +46,7 @@ public class SimpleSelectiveSolverProvider implements ConstraintSolverProvider {
       new FloatConstantFilter(), new FunctionFilter()
     });
     
-    ConstraintSolver solver = ConstraintSolverFactory.getRootFactory().createSolver(dp, config);
+    ConstraintSolver solver = (new ConstraintSolverFactory()).createSolver(dp, config);
     return new SimpleSelectiveSolver(solver, filter, eval);
   }
 
