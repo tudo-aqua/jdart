@@ -12,107 +12,26 @@ If you want to repeat experiments reported in the paper, use a
 [reproducible research environment in Aptlab][4].
 
 ## Installation ##
-There are two different ways of installing JDart:
-* Virtual machine with Docker or Vagrant
-* Installation on local machine
 
-With Docker or Vagrant, all the installation steps are automatically performed, creating a complete environment that can be used to run JDart.
-You can skip to the [Using JDart](#using-jdart) section.
+JDart currently works as a shell plug-in to [JPF-core](https://github.com/javapathfinder/jpf-core).
+In addition it depends on the [jConstraints library](https://github.com/tudo-aqua/jconstraints).
 
-### Docker
-Assuming you have [Docker][9] installed, simply run:
+We invested into the simplification of the build process. At the moment, dependencies
+are loaded from jitpack.io.
+It should be sufficient to run:
+`./gradlew jar exampleClasses`
+to build the requried jars.
 
-```bash
-$ docker build -t jdart .
-# Will take some time to build the image...
-$ docker run -it jdart
+Next, in the current state of the Gradle build, it is required to adapt the jpf.properties file.
+Make sure the following part:
+```
+jpf-jdart.classpath=\
+  ${jpf-jdart}/build/libs/jdart-classes-0.1.0-ecb5455.jar;\
+  ${jpf-jdart}/build/libs/jdart-annotations-0.1.0-ecb5455.jar;\
+  ${jpf-jdart}/build/classes/java/examples
 ```
 
-### Vagrant
-For this to work, you will have to install [Vagrant][6] and either [VirtualBox][7] or [libvirt][8].
-Assuming those are installed, simply run:
-
-```bash
-$ vagrant up
-```
-The command will take about 20 minutes depending on your machine.
-
-
-### Installing JDart Locally
-The prerequisites for JDart are:
-* JPF-core 8
-* jConstraints
-* Adding jConstraints solver plugins, e.g., jConstraints-z3 for interfacing with Z3
-
-The following provides installation instructions for each of these components.
-
-#### JPF-core 8 
-JDart is compatible with version 8 of the Java PathFinder framework. Please make sure
-you have the most recent version of [jpf-core][0].
-
-**Step 1:** Clone the `jpf-core` repository:
-```bash
-$ hg clone http://babelfish.arc.nasa.gov/hg/jpf/jpf-core
-```
-
-**Step 2:** Build *jpf-core*
-```bash
-$ ant
-```
-
-**Step 3:** Make sure the `jpf-core` property in your `site.properties` (in `$HOME/.jpf`) points to the
-   respective directory. Also make sure to add the property to `extensions`. In summary, your `site.properties` file should contain the following:
-```bash
-$ vim ~/.jpf/site.properties
-
-# ...
-jpf-core = /path/to/jpf-core
-extensions=${jpf-core}
-```
-
-#### jConstraints
-JDart uses the [jConstraints][1] library as an abstraction layer for interfacing
-the solver. jConstraints uses plugins for supporting multiple constraint solvers.
-For licensing reasons no plugin is included in JDart. 
-
-In order to run JDart you have to install jConstraints **and** a plugin for **at least** one constraint solver.
-
-jConstraints supports a variety of solvers. Please consult the respective installation instructions for each of them by accessing the modules on the main GitHub organization, [Psycopaths][3].
-
-In summary:
-
-**Step 1:** Follow the installation instructions for [jConstraints][1]
-
-**Step 2:** Assuming you would like to have Z3 support, follow the installation instructions for [jConstraints-z3][5]. Alternatively, have a look at the other solver plugins for jConstraints on [Psycopaths' GitHub org][3].
-
-
-#### Installing JDart
-**Step 1:** Clone the `JDart` repository:
-```bash
-$ git clone https://github.com/psycopaths/jdart.git
-```
-
-**Step 2:** Make sure that your `site.properties` contains the appropriate entry for the `jpf-jdart`
-property. You can have additional JPF modules installed, but the minimum configuration for JDart should look like the following in `site.properties`: 
-```bash
-$ vim ~/.jpf/site.properties
-
-# ...
-jpf-core = /path/to/jpf-core
-jpf-jdart = /path/to/jdart
-
-extensions=${jpf-core}
-```
-
-Note that the extensions property **is not** updated with the `jpf-jdart` property. This is intentional. Instead, use the `@using = jpf-jdart` directive in your application `jpf` file. 
-
-**Step 3:** Installing JDart is as simple as just running the ant build ant build in the JDart directory:
-```bash
-$ cd /path/to/jdart 
-$ ant
-```
-
-You should now be ready to use JDart.
+matches the version currently produced in the build folder. The autmation to fix it is still missing.
 
 ## Using JDart
 The analysis configuration is specified in a jpf application properties file. The minimum configuration required is:
@@ -139,7 +58,7 @@ concolic.method=bar
 For an example of how to configure JDart, please have a look at the `test_xxx.jpf` files
 in `src/examples/features/simple`. JDart can be run on these examples using the `jpf` binary in jpf-core:
 ```bash
-$ /path/to/jpf-core/bin/jpf /path/to/jdart/src/examples/features/simple/test_foo.jpf
+$ java -jar build/libs/RunJdart*.jar src/examples/features/simple/test_foo.jpf
 ```
 
 The documentation for the concolic execution configuration can be found in the wiki.
