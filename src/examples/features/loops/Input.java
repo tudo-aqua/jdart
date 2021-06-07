@@ -20,8 +20,8 @@ public class Input {
   public void foo(int i) {
     System.err.println("\n-------- In foo! Parameter = " + i);
 
-    for (int j = 1; j < 4; j++) {
-      if (i + j > 0) {
+    for (int j = 1; j < 10; j++) {
+      if (i + j > 200) {
       	System.out.println((i + j) + " is > 0");
       } else {
       	System.out.println((i + j) + " is <= 0");

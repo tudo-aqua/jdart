@@ -18,9 +18,13 @@ package features.shift;
 public class Input {
   
   public static void shiftTest(long val, int shiftAmt) {
-    assert ((val << shiftAmt) != 0);
-    assert ((val >> shiftAmt) != 0);
-    assert ((val >>> (shiftAmt - 1)) != 0);
+    
+    if (shiftAmt > 0 && shiftAmt < 100) {
+      assert ( (1L << shiftAmt) != 1L);
+    }
+    //assert ((val << shiftAmt) != 0);
+    //assert ((val >> shiftAmt) != 0);
+    //assert ((val >>> (shiftAmt - 1)) != 0);
   }
 
   public static void main(String[] args) {

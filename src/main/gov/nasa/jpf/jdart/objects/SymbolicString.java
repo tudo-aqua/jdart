@@ -14,31 +14,14 @@
  */
 package gov.nasa.jpf.jdart.objects;
 
-import gov.nasa.jpf.constraints.api.Expression;
-
 /**
  * @author falk
  */
-public class SymbolicString {
+public abstract class SymbolicString {
 
-	private final Expression<Integer> symbolicLength;
 	private boolean isFromSymbolicNumber = false;
+
 	private SymbolicNumber sn = null;
-
-	private final Expression[] symbolicChars;
-
-	public SymbolicString(Expression<Integer> symbolicLength, Expression[] symbolicChars) {
-		this.symbolicLength = symbolicLength;
-		this.symbolicChars = symbolicChars;
-	}
-
-	public Expression<Integer> getSymbolicLength() {
-		return symbolicLength;
-	}
-
-	public Expression[] getSymbolicChars() {
-		return symbolicChars;
-	}
 
 	public boolean isFromNumber() {
 		return isFromSymbolicNumber;

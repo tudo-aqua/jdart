@@ -19,4 +19,4 @@ report.console.finished=
 report.console.property_violation=
 
 jdart.configs.all_fields_symbolic.symbolic.include=this.*
-
+jdart.stringModel=SMTLibModel

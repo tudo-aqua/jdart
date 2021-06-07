@@ -20,7 +20,7 @@ import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.jdart.CompletedAnalysis;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
 import gov.nasa.jpf.jdart.config.ParamConfig;
-import gov.nasa.jpf.jdart.constraints.Path;
+import gov.nasa.jpf.jdart.constraints.paths.Path;
 import gov.nasa.jpf.util.TemplateBasedCompiler;
 import gov.nasa.jpf.vm.ClassPath;
 
@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
@@ -130,6 +129,7 @@ public class TestSuiteGenerator {
     String callBase = (staticMeth) ? mc.getClassName() + "." + mc.getMethodName() : mc.getMethodName();
 
     ArrayList<TestCase> tests = new ArrayList<>();
+    /*
     for (Path p : analysis.getConstraintsTree().getAllPaths()) {
       Valuation val = p.getValuation();
       if (val == null) {
@@ -163,7 +163,7 @@ public class TestSuiteGenerator {
       TestCase tc = new TestCase(mw);
       tests.add(tc);
     }
-    
+    */
     TestSuite suite = new TestSuite(tests);
     return new TestSuiteGenerator(suite, suiteName, pkg, dir);    
   }

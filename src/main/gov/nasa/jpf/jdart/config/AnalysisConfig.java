@@ -33,10 +33,10 @@ import gov.nasa.jpf.util.JPFLogger;
 public class AnalysisConfig {
   
   private static transient JPFLogger logger = JPF.getLogger("jdart");
-    
+
   public static Predicate<MethodInfo> methodPatternFromString(String patternStr) {
     final Pattern pat = patternFromString(patternStr);
-    
+
     return new Predicate<MethodInfo>() {
       @Override
       public boolean apply(MethodInfo mi) {
@@ -169,7 +169,6 @@ public class AnalysisConfig {
       String symbInclStr = config.getString(symbInclKey);
       setSymbolicFieldsInclude(symbInclStr);
     }
-    
   }
   
   public int getTreeMaxDepth() {

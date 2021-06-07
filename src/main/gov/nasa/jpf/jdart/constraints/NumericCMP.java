@@ -23,7 +23,6 @@ import gov.nasa.jpf.constraints.expressions.AbstractExpression;
 import gov.nasa.jpf.constraints.types.BuiltinTypes;
 import gov.nasa.jpf.constraints.types.NumericType;
 import gov.nasa.jpf.constraints.types.Type;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -42,21 +41,39 @@ public class NumericCMP extends AbstractExpression<Integer> {
     this.left = left;
     this.right = right;
   }
-  
-  @Override  
+
+  @Override
   public Integer evaluate(Valuation values) {
-    return doEvaluate(left, right, values);      
+    return doEvaluate(left, right, values);
   }
-  
-  private static <L,R> int doEvaluate(Expression<L> left, Expression<R> right, Valuation values) {
-    NumericType<L> lt = (NumericType<L>)left.getType();
-    NumericType<R> rt = (NumericType<R>)right.getType();
-    
+
+  @Override
+  public Integer evaluateSMT(Valuation valuation) {
+    return doEvaluateSMT(left, right, valuation);
+  }
+
+  private static <L, R> int doEvaluateSMT(Expression<L> left, Expression<R> right,
+      Valuation values) {
+    NumericType<L> lt = (NumericType<L>) left.getType();
+    NumericType<R> rt = (NumericType<R>) right.getType();
+
+    L lv = left.evaluateSMT(values);
+    R rv = right.evaluateSMT(values);
+
+    BigDecimal lnum = lt.decimalValue(lv), rnum = rt.decimalValue(rv);
+
+    return lnum.compareTo(rnum);
+  }
+
+  private static <L, R> int doEvaluate(Expression<L> left, Expression<R> right, Valuation values) {
+    NumericType<L> lt = (NumericType<L>) left.getType();
+    NumericType<R> rt = (NumericType<R>) right.getType();
+
     L lv = left.evaluate(values);
     R rv = right.evaluate(values);
-    
+
     BigDecimal lnum = lt.decimalValue(lv), rnum = rt.decimalValue(rv);
-    
+
     return lnum.compareTo(rnum);
   }
 

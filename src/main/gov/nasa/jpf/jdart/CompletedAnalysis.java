@@ -17,7 +17,7 @@ package gov.nasa.jpf.jdart;
 
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
-import gov.nasa.jpf.jdart.constraints.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
 
 import java.io.IOException;
 
@@ -55,7 +55,7 @@ public class CompletedAnalysis {
     initialValuation.print(a);
     a.append('\n');
     a.append("Constraints tree:\n");
-    a.append(constraintsTree.toString(false, true));
+    a.append(constraintsTree.toString());
   }
   
   public String toString() {

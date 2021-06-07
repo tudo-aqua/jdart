@@ -21,8 +21,8 @@ import gov.nasa.jpf.JPF;
 import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.SolverContext;
 import gov.nasa.jpf.constraints.api.Valuation;
-import gov.nasa.jpf.constraints.api.ValuationEntry;
 import gov.nasa.jpf.constraints.api.Variable;
+import gov.nasa.jpf.constraints.exceptions.EvaluationException;
 import gov.nasa.jpf.constraints.exceptions.ImpreciseRepresentationException;
 import gov.nasa.jpf.constraints.java.ObjectConstraints;
 import gov.nasa.jpf.constraints.parser.ParserUtil;
@@ -34,11 +34,10 @@ import gov.nasa.jpf.jdart.config.ConcolicConfig;
 import gov.nasa.jpf.jdart.config.ConcolicMethodConfig;
 import gov.nasa.jpf.jdart.config.ConcolicValues;
 import gov.nasa.jpf.jdart.config.ParamConfig;
-import gov.nasa.jpf.jdart.constraints.ConstraintsTree;
-import gov.nasa.jpf.jdart.constraints.InternalConstraintsTree;
-import gov.nasa.jpf.jdart.constraints.InternalConstraintsTree.BranchEffect;
-import gov.nasa.jpf.jdart.constraints.PathResult;
-import gov.nasa.jpf.jdart.constraints.PostCondition;
+import gov.nasa.jpf.jdart.constraints.paths.PathResult;
+import gov.nasa.jpf.jdart.constraints.paths.PostCondition;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree;
+import gov.nasa.jpf.jdart.constraints.tree.ConstraintsTree.BranchEffect;
 import gov.nasa.jpf.jdart.objects.SymbolicObjectsContext;
 import gov.nasa.jpf.jdart.termination.TerminateOnAssertionError;
 import gov.nasa.jpf.jdart.termination.TerminationStrategy;
@@ -52,12 +51,11 @@ import gov.nasa.jpf.vm.StackFrame;
 import gov.nasa.jpf.vm.ThreadInfo;
 import gov.nasa.jpf.vm.Types;
 import gov.nasa.jpf.vm.UncaughtException;
-import org.antlr.runtime.RecognitionException;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  *
@@ -100,7 +98,7 @@ public class ConcolicMethodExplorer {
 	/**
 	 * constraints tree from exploring method
 	 */
-	private InternalConstraintsTree constraintsTree;
+	private ConstraintsTree constraintsTree;
 
 	/**
 	 * the original initial valuation for symbolic vars
@@ -128,6 +126,8 @@ public class ConcolicMethodExplorer {
 	 */
 	private final TerminationStrategy ts;
 
+	private final ConcolicConfig.StringModel sm;
+
 	public ConcolicMethodExplorer(ConcolicConfig config, String id, MethodInfo mi) {
 		// store method info and config
 		this.methodInfo = mi;
@@ -139,12 +139,14 @@ public class ConcolicMethodExplorer {
 
 		// create a constraints tree
 		this.solverCtx = config.getSolver().createContext();
-		this.constraintsTree = new InternalConstraintsTree(solverCtx, anaConf, vals);
+		this.constraintsTree = new ConstraintsTree(solverCtx, anaConf, vals,
+				config.getExplorationStrategy(), config.getIncremental());
 		this.ts = config.getTerminationStrategy();
+		sm = config.getStringModel();
 	}
 
 	public void setExplore(boolean explore) {
-		constraintsTree.setExplore(explore);
+		constraintsTree.setExploreMode(explore);
 	}
 
 	public String getId() {
@@ -235,15 +237,6 @@ public class ConcolicMethodExplorer {
 		if (nextValuation == null) {
 			nextValuation = constraintsTree.findNext();
 		}
-
-		if (nextValuation != null) {
-			for (Variable v : currValuation.getVariables()) {
-				if (!nextValuation.containsValueFor(v)) {
-					nextValuation.addEntry(new ValuationEntry(v, nextValuation.getValue(v))); // returns the default
-					// value for this type
-				}
-			}
-		}
 		currValuation = nextValuation;
 		nextValuation = null;
 
@@ -254,9 +247,8 @@ public class ConcolicMethodExplorer {
 	/**
 	 * registers method for concolic execution. Puts symbolic input values onto the stack ...
 	 *
-	 * @param invokeInstruction
-	 * @param systemState
 	 * @param ti
+	 * @param sf
 	 */
 	public void initializeMethod(ThreadInfo ti, StackFrame sf) {
 		logger.finest("Initializing concolic execution of " + methodInfo.getFullName());
@@ -265,9 +257,9 @@ public class ConcolicMethodExplorer {
 		sf.setFrameAttr(RootFrame.getInstance());
 
 		symContext = new SymbolicObjectsContext(ti.getHeap(),
-												anaConf.getSymbolicFieldsExclude(),
-												anaConf.getSymbolicFieldsInclude(),
-												anaConf.getSpecialExclude());
+																						anaConf.getSymbolicFieldsExclude(),
+																						anaConf.getSymbolicFieldsInclude(),
+																						anaConf.getSpecialExclude());
 
 		initializeSymbolicStatic(ti);
 		initializeSymbolicParams(ti, sf);
@@ -288,12 +280,10 @@ public class ConcolicMethodExplorer {
 						ParserUtil.parseLogical(constraintStr, ObjectConstraints.getJavaTypes(), vlist);
 				try {
 					solverCtx.add(constrExpr);
-				}
-				catch (Exception ex) {
+				} catch (Exception ex) {
 					logger.severe("Could not add constraint to solver: ", ex);
 				}
-			}
-			catch (RecognitionException | ImpreciseRepresentationException ex) {
+			} catch (ImpreciseRepresentationException ex) {
 				logger.severe("Could not parse constraint: ", ex);
 			}
 		}
@@ -402,20 +392,19 @@ public class ConcolicMethodExplorer {
 	}
 
 	@SafeVarargs
-	public final void decision(ThreadInfo ti,
-							   Instruction branchInsn,
-							   int chosenIdx,
-							   Expression<Boolean>... expressions) {
+	public final void decision(ThreadInfo ti, Instruction branchInsn, int chosenIdx,
+														 Expression<Boolean>... expressions) {
 		BranchEffect eff = constraintsTree.decision(branchInsn, chosenIdx, expressions);
 		switch (eff) {
-			case INCONCLUSIVE:
-				logger.severe("Aborting current execution due to inconclusive divergence...");
-				constraintsTree.failCurrentTarget();
+			case BUGGY:
+				logger.severe("Aborting current execution due to buggy divergence...");
+				constraintsTree.failCurrentTargetBuggy("Aborting current execution due to buggy divergence...");
 				ti.breakTransition(true);
 				break;
 			case UNEXPECTED:
 				logger.warning("Unexpected divergence in execution of current valuation ...");
-				constraintsTree.failCurrentTarget(); // TODO: Here, we could make more effort ...
+				// TODO: Here, we could make more effort (e.g., using a constraint solver again)...
+				constraintsTree.failCurrentTargetDiverged();
 				break;
 			default:
 		}
@@ -426,12 +415,13 @@ public class ConcolicMethodExplorer {
 		return this.methodConfig;
 	}
 
-	public InternalConstraintsTree getInternalConstraintsTree() {
+	public ConstraintsTree getInternalConstraintsTree() {
 		return this.constraintsTree;
 	}
 
 	public CompletedAnalysis finish() {
-		return new CompletedAnalysis(methodConfig, initValuation, initParams, constraintsTree.toFinalCTree());
+		constraintsTree.setInitialValuation(initValuation);
+		return new CompletedAnalysis(methodConfig, initValuation, initParams, constraintsTree);
 	}
 
 	public void newPath(StackFrame sf) {
@@ -455,25 +445,25 @@ public class ConcolicMethodExplorer {
 	public void methodExited(ThreadInfo ti, MethodInfo mi) {
 		RestoreExploreState r = ti.getTopFrame().getFrameAttr(RestoreExploreState.class);
 		if (r != null) {
-			constraintsTree.setExplore(r.explore);
+			constraintsTree.setExploreMode(r.explore);
 			logger.finer("Restored exploration state after leaving method ", mi.getFullName());
 		}
 	}
 
 	public void methodEntered(ThreadInfo ti, MethodInfo mi) {
-		boolean explore = constraintsTree.isExplore();
+		boolean explore = constraintsTree.isExploreMode();
 
 		if (explore) {
 			if (anaConf.suspendExploration(mi)) {
 				ti.getTopFrame().setFrameAttr(new RestoreExploreState(explore));
 				logger.finer("Suspending exploration in method " + mi.getFullName());
-				constraintsTree.setExplore(false);
+				constraintsTree.setExploreMode(false);
 			}
 		} else {
 			if (anaConf.resumeExploration(mi)) {
 				ti.getTopFrame().setFrameAttr(new RestoreExploreState(explore));
 				logger.finer("Resuming exploration in method " + mi.getFullName());
-				constraintsTree.setExplore(true);
+				constraintsTree.setExploreMode(true);
 			}
 		}
 	}
@@ -483,85 +473,112 @@ public class ConcolicMethodExplorer {
 
 	public Pair<Integer> getOrCreateSymbolicInt() {
 		Variable var = new Variable(BuiltinTypes.SINT32, "_int" + count++);
-		Integer val = (Integer) currValuation.getValue(var);
-		if (val == null) {
-			val = 0;
+		Integer val;
+		try {
+			val = (Integer) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Integer) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Integer> getOrCreateSymbolicInt8() {
 		Variable var = new Variable(BuiltinTypes.SINT8, "_int" + count++);
-		Integer val = ((Byte) currValuation.getValue(var)).intValue();
-		if (val == null) {
-			val = 0;
+		Integer val;
+		try {
+			val = ((Byte) currValuation.getValue(var)).intValue();
+		} catch (EvaluationException e) {
+			val = (Integer) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
+		return new Pair<>(val, var);
+	}
+
+	public Pair<String> getOrCreateSymbolicString() {
+		Variable var = new Variable(BuiltinTypes.STRING, "_string" + count++);
+		String val;
+		try {
+			val = ((String) currValuation.getValue(var));
+		} catch (EvaluationException e) {
+			val = (String) var.getType().getDefaultValue();
+		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Boolean> getOrCreateSymbolicBoolean() {
 		Variable var = new Variable(BuiltinTypes.BOOL, "_bool" + count++);
-		Boolean val = (Boolean) currValuation.getValue(var);
-		if (val == null) {
-			val = false;
+		Boolean val;
+		try {
+			val = (Boolean) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Boolean) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Byte> getOrCreateSymbolicByte() {
 		Variable var = new Variable(BuiltinTypes.SINT8, "_byte" + byteCount++);
-		Byte val = (Byte) currValuation.getValue(var);
-		if (val == null) {
-			val = 0;
+		Byte val;
+		try {
+			val = (Byte) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Byte) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Character> getOrCreateSymbolicChar() {
 		Variable var = new Variable(BuiltinTypes.UINT16, "_char" + byteCount++);
-		Character val = (Character) currValuation.getValue(var);
-		if (val == null) {
-			val = 0;
+		Character val;
+		try {
+			val = (Character) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Character) var.getType().getDefaultValue();
 		}
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Float> getOrCreateSymbolicFloat() {
 		Variable var = new Variable(BuiltinTypes.FLOAT, "_float" + count++);
-		Float val = (Float) currValuation.getValue(var);
-		if (val == null) {
-			val = 0f;
+		Float val;
+		try {
+			val = (Float) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Float) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Double> getOrCreateSymbolicDouble() {
 		Variable var = new Variable(BuiltinTypes.DOUBLE, "_double" + count++);
-		Double val = (Double) currValuation.getValue(var);
-		if (val == null) {
-			val = 0.0;
+		Double val;
+		try {
+			val = (Double) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Double) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
 	public Pair<Long> getOrCreateSymbolicLong() {
 		Variable var = new Variable(BuiltinTypes.SINT64, "_long" + count++);
-		Long val = (Long) currValuation.getValue(var);
-		if (val == null) {
-			val = 0l;
+		Long val;
+		try {
+			val = (Long) currValuation.getValue(var);
+		} catch (EvaluationException e) {
+			val = (Long) var.getType().getDefaultValue();
 		}
+		Objects.requireNonNull(val);
 		return new Pair<>(val, var);
 	}
 
-	// LEGACY API
-
-	@Deprecated
-	public ConstraintsTree getConstraintsTree() {
-		return constraintsTree.toFinalCTree();
-	}
-
-	@Deprecated
-	public Valuation getOriginalInitialValuation() {
-		return initValuation;
+	public ConcolicConfig.StringModel getStringModel() {
+		return sm;
 	}
 }

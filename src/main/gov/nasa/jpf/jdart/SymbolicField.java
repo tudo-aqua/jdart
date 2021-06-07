@@ -18,8 +18,9 @@ package gov.nasa.jpf.jdart;
 import gov.nasa.jpf.constraints.api.Expression;
 import gov.nasa.jpf.constraints.api.Valuation;
 import gov.nasa.jpf.constraints.api.Variable;
+import gov.nasa.jpf.constraints.exceptions.EvaluationException;
 import gov.nasa.jpf.constraints.expressions.Constant;
-import gov.nasa.jpf.jdart.constraints.PostCondition;
+import gov.nasa.jpf.jdart.constraints.paths.PostCondition;
 import gov.nasa.jpf.vm.ElementInfo;
 import gov.nasa.jpf.vm.FieldInfo;
 import gov.nasa.jpf.vm.StackFrame;
@@ -63,7 +64,12 @@ public class SymbolicField<T> extends SymbolicVariable<T> {
    */
   @Override
   public void apply(Valuation val, StackFrame sf) {
-    T value = val.getValue(variable);
+    T value;
+    try {
+      value = val.getValue(variable);
+    } catch (EvaluationException e) {
+      value = variable.getType().getDefaultValue();
+    }
     elementInfo.defreeze();
     ConcolicUtil.setField(elementInfo, fieldInfo, variable.getType(), value);
     elementInfo.setFieldAttr(fieldInfo, variable);
@@ -72,7 +78,7 @@ public class SymbolicField<T> extends SymbolicVariable<T> {
 
   /*
    * (non-Javadoc)
-   * @see gov.nasa.jpf.jdart.SymbolicVariable#addToPC(gov.nasa.jpf.jdart.constraints.PostCondition)
+   * @see gov.nasa.jpf.jdart.SymbolicVariable#addToPC(gov.nasa.jpf.jdart.constraints.paths.PostCondition)
    */
   @Override
   @SuppressWarnings("unchecked")
